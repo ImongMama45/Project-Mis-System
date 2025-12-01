@@ -44,16 +44,7 @@ INSTALLED_APPS = [
     "api",
     "maintenance",
     "request_system",
-    'corsheaders',
-    
 ]
-
-CORS_ALLOWED_ORIGINS = [
-    "http://localhost:3000",  # React default port
-    "http://localhost:5173",  # Vite default port
-]
-
-CORS_ALLOW_CREDENTIALS = True
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
