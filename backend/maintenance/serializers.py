@@ -1,10 +1,11 @@
 from rest_framework import serializers
 from .models import MaintenanceRequest
-from accounts.serializers import StaffProfileSerializer, UserSerializer
+from accounts.serializers import StaffProfileSerializer
 
 
 class MaintenanceRequestSerializer(serializers.ModelSerializer):
     assigned_to = StaffProfileSerializer(read_only=True)
+    issue_photo = serializers.ImageField(use_url=True)
 
     class Meta:
         model = MaintenanceRequest

@@ -1,10 +1,11 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom";
-import Dashboard from "../pages/Dashboard";
+import Dashboard from "../components/Dashboard.jsx";
 import CreateRequest from "../pages/CreateRequest";
 import TrackRequest from "../pages/TrackRequest";
 import StaffDashboard from "../pages/StaffDashboard";
 import AdminPanel from "../pages/AdminPanel";
-import Sidebar from "../components/Sidebar";
+import MaintenanceRequestForms from "../components/MaintenanceRequestForm.jsx";
+
 
 export default function AppRouter() {
   return (
@@ -14,6 +15,7 @@ export default function AppRouter() {
 
         <div style={{ flex: 1, padding: "20px" }}>
           <Routes>
+            <Route path="/request-form" element={<MaintenanceRequestForms />} />
             <Route path="/" element={<Dashboard />} />
             <Route path="/create" element={<CreateRequest />} />
             <Route path="/track" element={<TrackRequest />} />
