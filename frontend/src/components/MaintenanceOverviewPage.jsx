@@ -1,5 +1,6 @@
 import React from 'react';
 import { useNavigate,Link } from 'react-router-dom';
+import Header from './Header';
 
 export default function ManagementOverview({ onNavigate }) {
   const cards = [
@@ -20,7 +21,8 @@ export default function ManagementOverview({ onNavigate }) {
     },
   ];
 
-  return (
+  return (<>
+    <Header showSearch={false} />
     <div className="p-8">
       <h1 className="text-3xl font-bold mb-6">Management</h1>
       <p className="mb-8 text-gray-600">
@@ -47,5 +49,6 @@ export default function ManagementOverview({ onNavigate }) {
         ))}
       </div>
     </div>
+    </>
   );
 }

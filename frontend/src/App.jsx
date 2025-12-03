@@ -12,6 +12,7 @@ import ManagementOverview from './components/MaintenanceOverviewPage.jsx';
 import ComplaintsPage from './pages/ComplaintsPage.jsx';
 import BuildingsPage from './pages/BuildingsPage.jsx';
 import StaffersPage from './pages/StaffersPage.jsx';
+import TrackRequest from './pages/TrackRequest.jsx';
 
 function PrivateRoute({ children, allowedRoles }) {
   const { isAuthenticated, user } = useAuth();
@@ -88,14 +89,15 @@ function Sidebar() {
     return [
       { path: '/home', label: 'Dashboard' },
       { path: '/public-home', label: 'Home' },
-      { path: '/track-status', label: 'Track Status' }
+      { path: '/track-requests', label: 'Track Requests' },
+      { path: '/submit-request', label: '+ Submit Request' }
     ];
   };
 
   const navigationItems = getNavigationItems();
 
   return (
-    <nav className="fixed left-0 top-0 w-60 h-screen bg-[#0a2540] text-white p-6 flex flex-col justify-between rounded-r-[30px] shadow-2xl z-50">
+    <nav className="fixed left-0 top-0 w-60 h-screen bg-[#0a2540] text-white p-6 flex flex-col justify-between shadow-xl/30">
       {/* Logo */}
       <div>
         <div className="flex flex-col items-center mb-8">
@@ -113,19 +115,37 @@ function Sidebar() {
 
         {/* Menu Items with Active Border */}
         <div className="space-y-2">
-          {navigationItems.map((item) => (
-            <Link
-              key={item.path}
-              to={item.path}
-              className={`block px-6 py-3 rounded-xl transition-all text-center font-medium ${
-                isActive(item.path)
-                  ? 'bg-orange-500 border-2 border-orange-300'
-                  : 'hover:bg-white/10'
-              }`}
-            >
-              {item.label}
-            </Link>
-          ))}
+          {/* Regular navigation items */}
+          {navigationItems.map((item) => {
+            if (item.path === '/submit-request') return null; // skip for now
+            return (
+              <Link
+                key={item.path}
+                to={item.path}
+                className={`block px-6 py-3 rounded-xl transition-all text-center font-medium
+                  ${isActive(item.path)
+                    ? 'bg-transparent border-2 border-orange-500 text-white'
+                    : 'border-2 border-transparent hover:bg-white/10 hover:border-orange-300 text-white'
+                  }`}
+              >
+                {item.label}
+              </Link>
+            );
+          })}
+
+        </div>
+        <div className="pt-4"> {/* pt-4 adds spacing from the previous links */}
+          {navigationItems
+            .filter(item => item.path === '/submit-request')
+            .map(item => (
+              <Link
+                key={item.path}
+                to={item.path}
+                className="block px-6 py-3 rounded-xl transition-all text-center font-medium bg-green-600 text-white hover:bg-green-700 border-2 border-green-700"
+              >
+                {item.label}
+              </Link>
+            ))}
         </div>
       </div>
 
@@ -240,13 +260,10 @@ function AppContent() {
             }
           />
           <Route
-            path="/track-status"
+            path="/track-requests"
             element={
               <PrivateRoute>
-                <div className="p-8">
-                  <h1 className="text-3xl font-bold">Track Status</h1>
-                  <p className="text-gray-600 mt-4">Status tracking coming soon...</p>
-                </div>
+                <TrackRequest/>
               </PrivateRoute>
             }
           />

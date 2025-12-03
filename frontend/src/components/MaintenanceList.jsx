@@ -1,6 +1,8 @@
+// MaintenanceList
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
+import api from '../api/axios';
 
 function MaintenanceList() {
   const [requests, setRequests] = useState([]);
@@ -11,15 +13,12 @@ function MaintenanceList() {
   const [updateData, setUpdateData] = useState({
     status: '',
     notes: '',
-    image: null
+    image: null,
+    assigned_to: '' // Add this
   });
   const [userRole, setUserRole] = useState(null);
+  const [staffList, setStaffList] = useState([]); // ✅ Add this state
   const navigate = useNavigate();
-
-  // API Configuration
-  const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000';
-  const MAINTENANCE_ENDPOINT = '/api/maintenance/requests/';
-  const USER_PROFILE_ENDPOINT = '/api/accounts/';
 
   // Helper function to get the full image URL
   const getImageUrl = (imagePath) => {
@@ -29,21 +28,7 @@ function MaintenanceList() {
       return imagePath;
     }
     
-    return `${API_BASE_URL}${imagePath}`;
-  };
-
-  // Get authentication token
-  const getAuthHeaders = () => {
-    const token = localStorage.getItem('access_token') || localStorage.getItem('token');
-    const headers = {
-      'Content-Type': 'application/json',
-    };
-    
-    if (token) {
-      headers['Authorization'] = `Bearer ${token}`;
-    }
-    
-    return headers;
+    return `${import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000'}${imagePath}`;
   };
 
   useEffect(() => {
@@ -56,6 +41,12 @@ function MaintenanceList() {
       setLoading(true);
       const profile = await fetchUserProfile();
       setUserRole(profile.role);
+      
+      // ✅ Fetch staff list if user is admin
+      if (profile.role === 'admin') {
+        await fetchStaffList();
+      }
+      
       await fetchRequests(profile.role, profile.userId);
     } catch (error) {
       console.error('Error initializing data:', error);
@@ -65,64 +56,71 @@ function MaintenanceList() {
     }
   };
 
-  // Fetch current user's profile (includes user ID and role)
-  // Fetch current user's profile (includes user ID and role)
+// ✅ Fetch list of all staff members (admin only)
+  const fetchStaffList = async () => {
+    try {
+      // Use the new endpoint that returns ALL staff
+      const response = await api.get('/accounts/staff/all/');
+      
+      console.log('Staff list response:', response.data);
+      
+      // This should now be an array
+      const staffArray = Array.isArray(response.data) ? response.data : [];
+      
+      setStaffList(staffArray);
+      console.log('Loaded staff list:', staffArray.length, 'members');
+      
+    } catch (error) {
+      console.error('Error fetching staff list:', error);
+      if (error.response?.status === 403) {
+        console.warn('User is not authorized to view staff list');
+      }
+      setStaffList([]);
+    }
+  };
+
+  // Fetch current user's profile
   const fetchUserProfile = async () => {
     try {
-      // First call to get the profile URL
-      const initialResponse = await axios.get(`${API_BASE_URL}${USER_PROFILE_ENDPOINT}`, {
-        headers: getAuthHeaders(),
-      });
+      const response = await api.get('/accounts/staffprofile/');
       
-      console.log('Initial API response:', initialResponse.data);
+      console.log('User profile response:', response.data);
       
-      // Check if we got a URL to the actual profile
-      let profileData;
-      if (initialResponse.data.staffprofile) {
-        // Fetch the actual profile data from the staffprofile URL
-        const profileResponse = await axios.get(initialResponse.data.staffprofile, {
-          headers: getAuthHeaders(),
-        });
-        profileData = profileResponse.data;
-      } else {
-        // If no nested URL, use the response directly
-        profileData = initialResponse.data;
-      }
+      const profileData = response.data;
+      const userId = profileData.user?.id || profileData.user;
+      const role = (profileData.role || 'staff').toLowerCase();
       
-      console.log('User profile data:', profileData);
+      console.log('Extracted - Role:', role, 'User ID:', userId);
       
       return {
-        role: (profileData.role || profileData.user_role || 'staff').toLowerCase(),
-        userId: profileData.user || profileData.id || profileData.user_id || profileData.pk || null
+        role: role,
+        userId: userId
       };
     } catch (error) {
       console.error('Error fetching user profile:', error);
-      // Default to 'staff' if role fetch fails to be more restrictive
+      if (error.response?.status === 401) {
+        console.error('Authentication failed - redirecting to login');
+      }
       return { role: 'staff', userId: null };
     }
   };
-  // Fetch maintenance requests based on user role
+
   // Fetch maintenance requests based on user role
   const fetchRequests = async (role = userRole, userId = null) => {
     try {
-      const response = await axios.get(`${API_BASE_URL}${MAINTENANCE_ENDPOINT}`, {
-        headers: getAuthHeaders()
-      });
+      const response = await api.get('/maintenance/requests/');
       
       const data = response.data;
       console.log('Fetched requests:', data);
       console.log('Filtering with role:', role, 'userId:', userId);
 
-      // Safely handle API response - ensure we have an array
       let requestsArray = [];
       
       if (Array.isArray(data)) {
         requestsArray = data;
       } else if (data && Array.isArray(data.results)) {
-        // Handle paginated response
         requestsArray = data.results;
-      } else if (data && typeof data === 'object') {
-        // Handle single object wrapped in response
+      } else if (data && typeof data === 'object' && !data.detail) {
         requestsArray = [data];
       } else {
         console.warn('Unexpected data format:', data);
@@ -131,17 +129,12 @@ function MaintenanceList() {
 
       console.log('Requests array before filtering:', requestsArray);
 
-      // Filter based on role
       let filteredRequests = [];
       if (role === 'admin') {
-        // Admins see ALL requests
         filteredRequests = requestsArray;
         console.log('Admin - showing all requests');
       } else {
-        // Staff see only requests assigned to THEM specifically
         filteredRequests = requestsArray.filter(req => {
-          // Check if assigned_to matches current user ID
-          // Handle both object format {id: X} and direct ID
           const assignedToId = typeof req.assigned_to === 'object' 
             ? req.assigned_to?.id 
             : req.assigned_to;
@@ -154,19 +147,35 @@ function MaintenanceList() {
 
       setRequests(filteredRequests);
       setError(null);
+      
     } catch (error) {
       console.error('Error fetching requests:', error);
-      setError(`Failed to load maintenance requests: ${error.response?.data?.detail || error.message}`);
-      setRequests([]); // Set to empty array on error
+      
+      if (error.response?.status === 401) {
+        setError('Authentication failed. Please log in again.');
+      } else if (error.response?.status === 403) {
+        setError('You do not have permission to view these requests.');
+      } else {
+        setError(`Failed to load maintenance requests: ${error.response?.data?.detail || error.message}`);
+      }
+      
+      setRequests([]);
     }
   };
 
   const openDetailModal = (request) => {
     setSelectedRequest(request);
+    
+    // ✅ Extract the assigned_to ID properly
+    const assignedToId = typeof request.assigned_to === 'object' 
+      ? request.assigned_to?.id 
+      : request.assigned_to;
+    
     setUpdateData({
       status: request.status,
       notes: request.completion_notes || '',
-      image: null
+      image: null,
+      assigned_to: assignedToId || '' // ✅ Set current assignment
     });
     setShowDetailModal(true);
   };
@@ -174,7 +183,7 @@ function MaintenanceList() {
   const closeDetailModal = () => {
     setShowDetailModal(false);
     setSelectedRequest(null);
-    setUpdateData({ status: '', notes: '', image: null });
+    setUpdateData({ status: '', notes: '', image: null, assigned_to: '' });
   };
 
   const handleUpdateRequest = async () => {
@@ -183,11 +192,10 @@ function MaintenanceList() {
     try {
       const formData = new FormData();
       
-      // Determine endpoint based on status change
       let endpoint = '';
       
       if (updateData.status === 'completed') {
-        endpoint = `${API_BASE_URL}/api/maintenance/requests/${selectedRequest.id}/complete/`;
+        endpoint = `/maintenance/requests/${selectedRequest.id}/complete/`;
         if (updateData.notes) {
           formData.append('completion_notes', updateData.notes);
         }
@@ -195,8 +203,7 @@ function MaintenanceList() {
           formData.append('completion_photo', updateData.image);
         }
       } else {
-        // For other status updates
-        endpoint = `${API_BASE_URL}/api/maintenance/requests/${selectedRequest.id}/update-status/`;
+        endpoint = `/maintenance/requests/${selectedRequest.id}/update-status/`;
         formData.append('status', updateData.status);
         if (updateData.notes) {
           formData.append('notes', updateData.notes);
@@ -206,25 +213,30 @@ function MaintenanceList() {
         }
       }
       
-      const token = localStorage.getItem('access_token') || localStorage.getItem('token');
-      const headers = {};
-      if (token) {
-        headers['Authorization'] = `Bearer ${token}`;
+      // ✅ Add assigned_to if admin changed it
+      if (userRole === 'admin' && updateData.assigned_to) {
+        formData.append('assigned_to', updateData.assigned_to);
       }
       
-      await axios.post(endpoint, formData, { headers });
+      await api.post(endpoint, formData);
       
       alert('Request updated successfully!');
       closeDetailModal();
       
-      // Refresh the list with proper role and userId filtering
       const profile = await fetchUserProfile();
       await fetchRequests(profile.role, profile.userId);
+      
     } catch (error) {
       console.error('Update error:', error);
-      alert(`Failed to update request: ${error.response?.data?.detail || error.message}`);
+      
+      if (error.response?.status === 401) {
+        alert('Authentication failed. Please log in again.');
+      } else {
+        alert(`Failed to update request: ${error.response?.data?.detail || error.message}`);
+      }
     }
   };
+
   const getStatusBadgeClass = (status) => {
     const badges = {
       pending: 'bg-yellow-100 text-yellow-800',
@@ -266,32 +278,19 @@ function MaintenanceList() {
   }
   
   return (
-    <div className="p-8">
+     <div className="p-8">
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-800">
-          {userRole === 'admin' ? 'All Maintenance Requests' : 'Assigned Requests'}
-        </h1>
-        <p className="text-gray-600 mt-2">
-          {userRole === 'admin' 
-            ? 'View and manage all maintenance requests' 
-            : 'Manage your assigned maintenance tasks'}
-        </p>
-        <div className="mt-2">
-          <span className="text-sm text-gray-500">
-            Role: <span className="font-semibold capitalize">{userRole}</span>
-          </span>
-        </div>
+        <h1 className="text-3xl font-bold text-gray-800">Assigned Requests</h1>
+        <p className="text-gray-600 mt-2">Manage your assigned maintenance tasks</p>
       </div>
       
       {requests.length === 0 ? (
         <div className="bg-white p-12 rounded-lg text-center shadow-md">
           <p className="text-xl text-gray-700 font-medium mb-2">
-            No {userRole === 'admin' ? '' : 'assigned'} requests found.
+            No assigned requests found.
           </p>
           <p className="text-lg text-gray-600">
-            {userRole === 'admin' 
-              ? 'There are currently no maintenance requests in the system.' 
-              : "You don't have any tasks assigned to you at the moment."}
+            You don't have any tasks assigned to you at the moment.
           </p>
         </div>
       ) : (
@@ -338,7 +337,7 @@ function MaintenanceList() {
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <span className={`px-3 py-1 rounded-full text-xs font-semibold ${getStatusBadgeClass(req.status)}`}>
-                      {formatStatusText(req.status)}
+                      {req.status.replace('_', ' ').toUpperCase()}
                     </span>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
@@ -371,7 +370,7 @@ function MaintenanceList() {
           >
             {/* Header */}
             <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex justify-between items-center">
-              <div>
+              <div> 
                 <h2 className="text-2xl font-bold text-gray-800">
                   Request #{selectedRequest.id}
                 </h2>
@@ -391,7 +390,7 @@ function MaintenanceList() {
             <div className="p-6 space-y-6">
               {/* Request Information */}
               <div className="space-y-4">
-                <h3 className="text-lg font-semibold text-gray-800 border-b pb-2">Request Information</h3>
+                <h3 className="text-lg font-semibold text-gray-800  pb-2">Request Information</h3>
                 
                 <div className="grid grid-cols-2 gap-4">
                   <div>
@@ -419,8 +418,9 @@ function MaintenanceList() {
                     <p className="mt-1 text-gray-900">{new Date(selectedRequest.created_at).toLocaleString()}</p>
                   </div>
                 </div>
+              </div>
 
-                <div>
+              <div>
                   <label className="block text-sm font-medium text-gray-700">Description</label>
                   <p className="mt-1 text-gray-900 bg-gray-50 p-3 rounded">{selectedRequest.description}</p>
                 </div>
@@ -441,27 +441,50 @@ function MaintenanceList() {
                 )}
               </div>
 
+
               {/* Update Section */}
-              {/* Add this inside the "Update Section" div, before the Status dropdown */}
-              {userRole === 'admin' && (
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Assign To (Admin Only)
-                  </label>
-                  <select
-                    value={updateData.assigned_to || ''}
-                    onChange={(e) => setUpdateData({ ...updateData, assigned_to: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:border-blue-500"
-                  >
-                    <option value="">Unassigned</option>
-                    {/* You'll need to fetch and populate staff list here */}
-                    {/* Example: staffList.map(staff => <option key={staff.id} value={staff.id}>{staff.name}</option>) */}
-                  </select>
-                </div>
-              )}
-              <div className="space-y-4 border-t pt-6">
-                <h3 className="text-lg font-semibold text-gray-800 border-b pb-2">Update Request</h3>
+              <div className="space-y-4 pt-6 p-8">
+                <h3 className="text-lg font-semibold text-gray-800 pb-2">Update Request</h3>
                 
+                {/* ✅ UPDATED: Staff Assignment Dropdown (Admin Only) */}
+                {userRole === 'admin' && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Assign To (Admin Only)
+                    </label>
+                    <select
+                      value={updateData.assigned_to || ''}
+                      onChange={(e) => setUpdateData({ ...updateData, assigned_to: e.target.value })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:border-blue-500"
+                    >
+                      <option value="">Unassigned</option>
+                      {staffList.map(staff => {
+                        // Extract user info - handle both nested and flat structures
+                        const userId = staff.user?.id || staff.user;
+                        const username = staff.user?.username || staff.username || 'Unknown';
+                        const firstName = staff.user?.first_name || staff.first_name || '';
+                        const lastName = staff.user?.last_name || staff.last_name || '';
+                        const email = staff.user?.email || staff.email || '';
+                        
+                        // Create display name
+                        const displayName = firstName && lastName 
+                          ? `${firstName} ${lastName} (@${username})`
+                          : username;
+                        
+                        return (
+                          <option key={staff.id} value={userId}>
+                            {displayName} - {staff.role}
+                          </option>
+                        );
+                      })}
+                    </select>
+                    {staffList.length === 0 && (
+                      <p className="text-sm text-gray-500 mt-1">No staff members available</p>
+                    )}
+                  </div>
+                )}
+                
+                {/* Status dropdown */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Status</label>
                   <select
@@ -503,45 +526,23 @@ function MaintenanceList() {
                 </div>
               </div>
 
-              {/* Previous completion info if exists */}
-              {selectedRequest.completion_notes && (
-                <div className="space-y-2 border-t pt-6">
-                  <h3 className="text-lg font-semibold text-gray-800">Previous Completion Notes</h3>
-                  <p className="text-gray-700 bg-gray-50 p-3 rounded">{selectedRequest.completion_notes}</p>
-                </div>
-              )}
-
-              {selectedRequest.completion_photo && (
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Previous Completion Photo</label>
-                  <img 
-                    src={getImageUrl(selectedRequest.completion_photo)}
-                    alt="Completed" 
-                    className="w-full max-h-64 object-contain rounded border"
-                    onError={(e) => {
-                      console.error('Completion image failed to load:', getImageUrl(selectedRequest.completion_photo));
-                      e.target.style.display = 'none';
-                    }}
-                  />
-                </div>
-              )}
-            </div>
+            
 
             {/* Footer Actions */}
-            <div className="sticky bottom-0 bg-gray-50 px-6 py-4 flex gap-3 border-t">
-              <button 
-                className="flex-1 bg-blue-500 hover:bg-blue-600 text-white py-2 px-4 rounded transition-colors font-medium"
-                onClick={handleUpdateRequest}
-              >
-                Update Request
-              </button>
-              <button 
-                className="flex-1 bg-gray-500 hover:bg-gray-600 text-white py-2 px-4 rounded transition-colors font-medium"
-                onClick={closeDetailModal}
-              >
-                Cancel
-              </button>
-            </div>
+              <div className="sticky bottom-0 bg-gray-50 px-6 py-4 flex gap-3 border-t">
+                <button 
+                  className="flex-1 bg-blue-500 hover:bg-blue-600 text-white py-2 px-4 rounded transition-colors font-medium"
+                  onClick={handleUpdateRequest}
+                >
+                  Update Request
+                </button>
+                <button 
+                  className="flex-1 bg-gray-500 hover:bg-gray-600 text-white py-2 px-4 rounded transition-colors font-medium"
+                  onClick={closeDetailModal}
+                >
+                  Cancel
+                </button>
+              </div>
           </div>
         </div>
       )}

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import api from '../api/axios'
+import Header from './Header';
 
 function MaintenanceRequestForm({ onSuccess }) {
   const [buildings, setBuildings] = useState([]);
@@ -135,159 +136,176 @@ function MaintenanceRequestForm({ onSuccess }) {
     }
   };
 
-  return (
-    <div className="max-w-lg mx-auto p-6 bg-white rounded-lg shadow-md">
-      <h2 className="text-2xl font-semibold text-center mb-6">Submit Maintenance Request</h2>
-      {error && <div className="bg-red-100 text-red-700 px-4 py-2 rounded mb-4 text-sm">{error}</div>}
+  return (<>
+    <Header showSearch={false} />
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-purple-100 to-purple-200 p-6">
+        <div className="bg-white rounded-2xl shadow-xl overflow-hidden max-w-6xl w-full p-8">
+          <h2 className="text-3xl font-bold text-gray-900 mb-6 text-center">Submit Maintenance Request</h2>
 
-      <form onSubmit={handleSubmit} className="space-y-4">
-        {/* Name */}
-        <div>
-          <label className="block mb-1 font-medium">Your Name *</label>
-          <input
-            type="text"
-            name="requester_name"
-            value={formData.requester_name}
-            onChange={handleChange}
-            required
-            className="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
-        </div>
+          {error && (
+            <div className="bg-red-100 border border-red-300 text-red-700 px-4 py-2 rounded mb-4 text-sm">
+              {error}
+            </div>
+          )}
 
-        {/* Role */}
-        <div>
-          <label className="block mb-1 font-medium">Role *</label>
-          <select
-            name="requester_role"
-            value={formData.requester_role}
-            onChange={handleChange}
-            required
-            className="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-          >
-            <option value="student">Student</option>
-            <option value="staff">Staff</option>
-            <option value="instructor">Instructor</option>
-          </select>
-        </div>
+          <form onSubmit={handleSubmit} className="space-y-5">
+            {/* Top Section: Left & Right */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Left */}
+              <div className="space-y-4">
+                {/* Name */}
+                <div>
+                  <label className="block mb-2 text-sm font-semibold text-gray-700">Your Name</label>
+                  <input
+                    type="text"
+                    name="requester_name"
+                    value={formData.requester_name}
+                    onChange={handleChange}
+                    required
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 shadow-sm"
+                  />
+                </div>
 
-        {/* Student Info */}
-        {formData.requester_role === 'student' && (
-          <>
+                {/* Role */}
+                <div>
+                  <label className="block mb-2 text-sm font-semibold text-gray-700">Role</label>
+                  <select
+                    name="requester_role"
+                    value={formData.requester_role}
+                    onChange={handleChange}
+                    required
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 shadow-sm bg-white"
+                  >
+                    <option value="student">Student</option>
+                    <option value="staff">Staff</option>
+                    <option value="instructor">Instructor</option>
+                  </select>
+                </div>
+
+                {/* Section (if student) */}
+                {formData.requester_role === 'student' && (
+                  <div>
+                    <label className="block mb-2 text-sm font-semibold text-gray-700">Section</label>
+                    <input
+                      type="text"
+                      name="section"
+                      value={formData.section}
+                      onChange={handleChange}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 shadow-sm"
+                    />
+                  </div>
+                )}
+              </div>
+
+              {/* Right */}
+              <div className="space-y-4">
+                {/* Student ID (if student) */}
+                {formData.requester_role === 'student' && (
+                  <div>
+                    <label className="block mb-2 text-sm font-semibold text-gray-700">Student ID</label>
+                    <input
+                      type="text"
+                      name="student_id"
+                      value={formData.student_id}
+                      onChange={handleChange}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 shadow-sm"
+                    />
+                  </div>
+                )}
+
+                {/* Building */}
+                <div>
+                  <label className="block mb-2 text-sm font-semibold text-gray-700">Building</label>
+                  <select
+                    name="building"
+                    value={formData.building}
+                    onChange={handleChange}
+                    required
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 shadow-sm bg-white"
+                  >
+                    <option value="">Select Building</option>
+                    {buildings.map((b) => (
+                      <option key={b.id} value={b.id}>{b.name}</option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Floor */}
+                <div>
+                  <label className="block mb-2 text-sm font-semibold text-gray-700">Floor</label>
+                  <select
+                    name="floor"
+                    value={formData.floor}
+                    onChange={handleChange}
+                    disabled={!formData.building}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 shadow-sm disabled:bg-gray-100"
+                  >
+                    <option value="">Select Floor</option>
+                    {floors.map(f => (
+                      <option key={f.id} value={f.id}>{f.label || `Floor ${f.number}`}</option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Room */}
+                <div>
+                  <label className="block mb-2 text-sm font-semibold text-gray-700">Room</label>
+                  <select
+                    name="room"
+                    value={formData.room}
+                    onChange={handleChange}
+                    required
+                    disabled={!formData.building}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 shadow-sm disabled:bg-gray-100"
+                  >
+                    <option value="">Select Room</option>
+                    {rooms.map(r => (
+                      <option key={r.id} value={r.id}>{r.name}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            {/* Middle Bottom: Description */}
             <div>
-              <label className="block mb-1 font-medium">Section</label>
-              <input
-                type="text"
-                name="section"
-                value={formData.section}
+              <label className="block mb-2 text-sm font-semibold text-gray-700">Description</label>
+              <textarea
+                name="description"
+                value={formData.description}
                 onChange={handleChange}
-                className="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                rows="4"
+                required
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 shadow-sm resize-none"
               />
             </div>
+
+            {/* Photo Upload */}
             <div>
-              <label className="block mb-1 font-medium">Student ID</label>
+              <label className="block mb-2 text-sm font-semibold text-gray-700">Issue Photo</label>
               <input
-                type="text"
-                name="student_id"
-                value={formData.student_id}
-                onChange={handleChange}
-                className="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                type="file"
+                accept="image/*"
+                onChange={handleFileChange}
+                className="w-full text-gray-600"
               />
             </div>
-          </>
-        )}
 
-        {/* Building Dropdown */}
-        <div>
-          <label className="block mb-1 font-medium">Building *</label>
-          <select
-            name="building"
-            value={formData.building}
-            onChange={handleChange}
-            required
-            className="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-          >
-            <option value="">Select Building</option>
-            {buildings.map((building) => (
-              <option key={building.id} value={building.id}>
-                {building.name}
-              </option>
-            ))}
-          </select>
+            {/* Submit Button */}
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full py-3 px-4 bg-orange-500 hover:bg-orange-600 text-white font-semibold rounded-lg shadow-md transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {loading ? 'Submitting...' : 'Submit Request'}
+            </button>
+          </form>
         </div>
+      </div>
 
-        {/* Floor Dropdown */}
-        <div>
-          <label className="block mb-1 font-medium">Floor</label>
-          <select
-            name="floor"
-            value={formData.floor}
-            onChange={handleChange}
-            disabled={!formData.building}
-            className="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100"
-          >
-            <option value="">Select Floor</option>
-            {floors.map((floor) => (
-              <option key={floor.id} value={floor.id}>
-                {floor.label || `Floor ${floor.number}`}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        {/* Room Dropdown */}
-        <div>
-          <label className="block mb-1 font-medium">Room *</label>
-          <select
-            name="room"
-            value={formData.room}
-            onChange={handleChange}
-            required
-            disabled={!formData.building}
-            className="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100"
-          >
-            <option value="">Select Room</option>
-            {rooms.map((room) => (
-              <option key={room.id} value={room.id}>
-                {room.name}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        {/* Description */}
-        <div>
-          <label className="block mb-1 font-medium">Description *</label>
-          <textarea
-            name="description"
-            value={formData.description}
-            onChange={handleChange}
-            rows="4"
-            required
-            className="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
-        </div>
-
-        {/* Photo */}
-        <div>
-          <label className="block mb-1 font-medium">Issue Photo</label>
-          <input
-            type="file"
-            accept="image/*"
-            onChange={handleFileChange}
-            className="w-full"
-          />
-        </div>
-
-        <button
-          type="submit"
-          disabled={loading}
-          className="w-full bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-4 rounded disabled:opacity-50"
-        >
-          {loading ? 'Submitting...' : 'Submit Request'}
-        </button>
-      </form>
-    </div>
+    </>
   );
+  
 }
 
 export default MaintenanceRequestForm;

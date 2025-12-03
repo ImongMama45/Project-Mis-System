@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.jsx';
+import Logo from '../images/Logo.png';
+
 
 function Login() {
   const [username, setUsername] = useState('');
@@ -31,26 +33,41 @@ function Login() {
   };
 
   return (
-    <div className="flex justify-center items-center min-h-screen bg-gradient-to-br from-blue-50 to-purple-50">
-      <div className="bg-white p-8 rounded-2xl shadow-2xl w-full max-w-md">
-        {/* Logo */}
-        <div className="flex justify-center mb-6">
-          <div className="w-24 h-24 rounded-full bg-blue-600 flex items-center justify-center shadow-lg">
-            <svg className="w-16 h-16" viewBox="0 0 100 100">
-              <circle cx="50" cy="50" r="45" fill="#3b82f6"/>
-              <text x="50" y="38" textAnchor="middle" fill="white" fontSize="20" fontWeight="bold">DLL</text>
-              <text x="50" y="62" textAnchor="middle" fill="white" fontSize="14">MAINT</text>
-            </svg>
+    <div
+    className="relative flex justify-center items-center min-h-screen"
+    style={{
+      backgroundImage: "url(/src/images/bg.png)",
+      backgroundPosition: "center",
+      backgroundRepeat: "no-repeat",
+      backgroundSize: "cover",
+    }}
+  >
+
+    {/* Dark overlay */}
+    <div className="absolute inset-0 bg-black/60"></div>
+    {/* You can adjust /60 (60%) → /40 lighter, /80 darker */}
+
+    {/* Content container (stays bright) */}
+    <div className="relative bg-white p-8 rounded-2xl shadow-2xl w-full max-w-md">
+      {/* Logo */}
+      <div className="flex justify-center mb-6">
+        <div className="mb-8 animate-fade-in">
+          <div className="w-40 h-40 rounded-full bg-white p-2 shadow-2xl">
+            <img
+              className="w-full h-full object-contain scale-100"
+              src={Logo}
+              alt="Maintenance Tracker Logo"
+            />
           </div>
         </div>
+      </div>
 
-        <h2 className="text-3xl font-bold mb-2 text-gray-800 text-center">
-          Welcome Back
-        </h2>
-        <p className="text-gray-600 text-center mb-6">
-          Sign in to continue to Maintenance Tracker
-        </p>
-
+      <h2 className="text-3xl font-bold mb-2 text-gray-800 text-center">
+        Welcome Back
+      </h2>
+      <p className="text-gray-600 text-center mb-6">
+        Sign in to continue to Maintenance Tracker
+      </p>
         {error && (
           <div className="bg-red-50 text-red-600 p-4 rounded-lg mb-4 border border-red-200">
             <p className="font-medium">Login Failed</p>

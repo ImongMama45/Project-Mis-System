@@ -55,8 +55,18 @@ function Register() {
   };
 
   return (
-    <div className="flex justify-center items-center min-h-[80vh] py-8">
-      <div className="bg-white p-8 rounded-lg shadow-lg w-full max-w-lg">
+    <div className="relative flex justify-center items-center min-h-screen"
+        style={{
+          backgroundImage: "url(/src/images/bg.png)",
+          backgroundPosition: "center",
+          backgroundRepeat: "no-repeat",
+          backgroundSize: "cover",
+        }}
+      >
+
+      <div className="absolute inset-0 bg-black/60"></div>
+
+    <div className="relative bg-white p-8 rounded-2xl shadow-2xl w-full max-w-md">
         <h2 className="text-2xl font-bold mb-6 text-gray-800 text-center">
           Register New User
         </h2>

@@ -2,6 +2,7 @@ from rest_framework import generics, permissions, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.views import APIView
+from accounts.models import User
 
 from .models import MaintenanceRequest
 from .serializers import (
@@ -37,13 +38,8 @@ class ClaimRequestView(APIView):
         if maintenance.assigned_to is not None:
             return Response({"error": "Already taken"}, status=400)
 
-        # Get the staff profile
-        try:
-            staff_profile = request.user.staffprofile
-            maintenance.assigned_to = staff_profile
-        except:
-            return Response({"error": "User is not a staff member"}, status=403)
-            
+        # Assign to the user directly (not staff profile)
+        maintenance.assigned_to = request.user
         maintenance.status = "in_progress"
         maintenance.save()
         return Response({"message": "Request claimed successfully"})
@@ -58,6 +54,16 @@ class CompleteRequestView(APIView):
             maintenance = MaintenanceRequest.objects.get(id=pk)
         except MaintenanceRequest.DoesNotExist:
             return Response({"error": "Request not found"}, status=404)
+        
+        # ✅ Handle assigned_to if provided (admin only)
+        assigned_to = request.data.get('assigned_to')
+        if assigned_to:
+            try:
+                user_id = int(assigned_to)
+                user = User.objects.get(id=user_id)
+                maintenance.assigned_to = user
+            except (ValueError, User.DoesNotExist):
+                return Response({"error": "Invalid user ID"}, status=400)
             
         serializer = CompleteRequestSerializer(
             maintenance, data=request.data, partial=True
@@ -68,7 +74,7 @@ class CompleteRequestView(APIView):
         return Response(serializer.errors, status=400)
 
 
-# Update status endpoint
+# ✅ FIXED: Update status endpoint
 class UpdateStatusView(APIView):
     permission_classes = [permissions.IsAuthenticated]
     
@@ -77,20 +83,37 @@ class UpdateStatusView(APIView):
             maintenance_request = MaintenanceRequest.objects.get(id=pk)
         except MaintenanceRequest.DoesNotExist:
             return Response({"error": "Request not found"}, status=404)
-            
-        status = request.data.get('status')
-        notes = request.data.get('notes', '')
         
+        # Update status
+        status = request.data.get('status')
         if status:
             maintenance_request.status = status
-            
+        
+        # ✅ CRITICAL FIX: Handle assigned_to
+        assigned_to = request.data.get('assigned_to')
+        if assigned_to:
+            try:
+                # Convert to integer and get the User
+                user_id = int(assigned_to)
+                user = User.objects.get(id=user_id)
+                maintenance_request.assigned_to = user
+                print(f"✅ Assigned request #{pk} to user: {user.username} (ID: {user_id})")
+            except (ValueError, User.DoesNotExist) as e:
+                print(f"❌ Error assigning user: {e}")
+                return Response({"error": f"Invalid user ID: {assigned_to}"}, status=400)
+        
+        # Update notes
+        notes = request.data.get('notes', '')
         if notes:
             maintenance_request.completion_notes = notes
         
+        # Handle image upload
         if request.FILES.get('image'):
             maintenance_request.completion_photo = request.FILES['image']
         
+        # Save the changes
         maintenance_request.save()
+        print(f"✅ Saved maintenance request #{pk} - assigned_to: {maintenance_request.assigned_to}")
         
         serializer = MaintenanceRequestSerializer(maintenance_request)
         return Response(serializer.data)

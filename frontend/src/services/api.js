@@ -1,9 +1,10 @@
 import axios from 'axios';
 
-const API_URL = 'http://localhost:8000/api';
+// ✅ Make sure this includes /api at the end
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000';
 
 const api = axios.create({
-  baseURL: API_URL,
+  baseURL: `${API_BASE_URL}/api`,  // ✅ Add /api here
   headers: {
     'Content-Type': 'application/json',
   },
@@ -12,7 +13,7 @@ const api = axios.create({
 // Add token to requests
 api.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem('access_token');
+    const token = localStorage.getItem('access_token') || localStorage.getItem('token');
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
@@ -21,7 +22,7 @@ api.interceptors.request.use(
   (error) => Promise.reject(error)
 );
 
-// Handle token refresh
+// Handle token refresh and 401 errors
 api.interceptors.response.use(
   (response) => response,
   async (error) => {
@@ -32,7 +33,7 @@ api.interceptors.response.use(
 
       try {
         const refreshToken = localStorage.getItem('refresh_token');
-        const response = await axios.post(`${API_URL}/accounts/refresh/`, {
+        const response = await axios.post(`${API_BASE_URL}/api/accounts/refresh/`, {
           refresh: refreshToken,
         });
 
@@ -72,7 +73,8 @@ export const maintenanceAPI = {
         formData.append(key, data[key]);
       }
     });
-    return axios.post(`${API_URL}/maintenance/requests/create/`, formData, {
+    // ✅ Use api instance instead of raw axios
+    return api.post('/maintenance/requests/create/', formData, {
       headers: {
         'Content-Type': 'multipart/form-data',
       },
@@ -100,11 +102,11 @@ export const maintenanceAPI = {
 
 // Request System API
 export const requestAPI = {
-  getAll: () => api.get('/requests/'),
-  getById: (id) => api.get(`/requests/${id}/`),
-  create: (data) => api.post('/requests/', data),
-  update: (id, data) => api.put(`/requests/${id}/`, data),
-  delete: (id) => api.delete(`/requests/${id}/`),
+  getAll: () => api.get('/maintenance/requests/'),
+  getById: (id) => api.get(`/maintenance/requests/${id}/`),
+  create: (data) => api.post('/maintenance/requests/', data),
+  update: (id, data) => api.put(`/maintenance/requests/${id}/`, data),
+  delete: (id) => api.delete(`/maintenance/requests/${id}/`),
 };
 
 export default api;

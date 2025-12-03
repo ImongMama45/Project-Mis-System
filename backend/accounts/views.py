@@ -3,6 +3,7 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from django.contrib.auth.models import User
+from rest_framework.views import APIView
 from .serializers import RegisterSerializer, UserSerializer,StaffProfileSerializer
 
 from rest_framework import viewsets, status
@@ -17,6 +18,23 @@ class RegisterView(generics.CreateAPIView):
     def perform_create(self, serializer):
         # Save the user with the role
         serializer.save()
+
+class CurrentUserStaffProfileView(APIView):
+    """
+    Get current user's staff profile
+    """
+    permission_classes = [IsAuthenticated]
+    
+    def get(self, request):
+        try:
+            staff_profile = StaffProfile.objects.select_related('user').get(user=request.user)
+            serializer = StaffProfileSerializer(staff_profile)
+            return Response(serializer.data)
+        except StaffProfile.DoesNotExist:
+            return Response(
+                {'error': 'Staff profile not found'}, 
+                status=status.HTTP_404_NOT_FOUND
+            )
 
 class StaffProfileViewSet(viewsets.ModelViewSet):
     """
@@ -119,39 +137,6 @@ class StaffProfileViewSet(viewsets.ModelViewSet):
             )
 
 
-
-
-
-@api_view(['GET'])
-@permission_classes([IsAuthenticated])
-def get_user_profile(request):
-    user = request.user
-    try:
-        staff_profile = user.staffprofile
-        return Response({
-            'id': user.id,
-            'username': user.username,
-            'email': user.email,
-            'first_name': user.first_name,
-            'last_name': user.last_name,
-            'role': staff_profile.role,  # Return role directly
-            'staff_profile': {
-                'role': staff_profile.role,
-                'contact_number': staff_profile.contact_number,
-                'specialization': staff_profile.specialization,
-            }
-        })
-    except Exception as e:
-        # If no staff profile exists, return basic user info
-        return Response({
-            'id': user.id,
-            'username': user.username,
-            'email': user.email,
-            'first_name': user.first_name,
-            'last_name': user.last_name,
-            'role': 'user'
-        })
-    
 # accounts/views.py
 
 import logging
@@ -174,6 +159,7 @@ def get_user_profile(request):
             'first_name': user.first_name,
             'last_name': user.last_name,
             'role': staff_profile.role,
+            'staffprofile': f"/api/accounts/staffprofile/{user.staffprofile.id}/",
             'staff_profile': {
                 'role': staff_profile.role,
                 'contact_number': staff_profile.contact_number,
@@ -239,3 +225,34 @@ def debug_all_users(request):
                 'role': None,
             })
     return Response(users_data)
+
+ # accounts/views.py
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_all_staff(request):
+    """
+    Get all staff members (admin only)
+    Used for the assignment dropdown
+    """
+    try:
+        # Check if current user is admin
+        current_user_profile = request.user.staffprofile
+        if current_user_profile.role != 'admin':
+            return Response(
+                {'error': 'Only admins can view all staff members'}, 
+                status=status.HTTP_403_FORBIDDEN
+            )
+    except StaffProfile.DoesNotExist:
+        return Response(
+            {'error': 'Staff profile not found'}, 
+            status=status.HTTP_404_NOT_FOUND
+        )
+    
+    # Get all staff and admin profiles (exclude regular users)
+    staff_profiles = StaffProfile.objects.filter(
+        role__in=['staff', 'admin']
+    ).select_related('user').order_by('user__first_name', 'user__last_name')
+    
+    serializer = StaffProfileSerializer(staff_profiles, many=True)
+    return Response(serializer.data)

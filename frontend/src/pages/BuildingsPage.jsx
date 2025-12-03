@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Search, Plus, Eye, Edit2, Trash2, X } from 'lucide-react';
 import api from '../api/axios';
 import { Link } from 'react-router-dom';
+
 const BuildingsPage = ({ onNavigate }) => {
   const [buildings, setBuildings] = useState([]);
   const [floors, setFloors] = useState([]);
@@ -11,9 +12,9 @@ const BuildingsPage = ({ onNavigate }) => {
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [editingBuilding, setEditingBuilding] = useState(null);
   const [selectedBuilding, setSelectedBuilding] = useState(null);
-  const [filteredBuildingsDrop, setFilteredBuildings] = useState([]);
   const [requests, setRequests] = useState([]);
-  const [issueFilter, setIssueFilter] = useState("");
+  const [buildingFilter, setBuildingFilter] = useState('');
+  const [issueFilter, setIssueFilter] = useState('');
   const [loading, setLoading] = useState(true);
   const [formData, setFormData] = useState({
     name: '',
@@ -29,14 +30,15 @@ const BuildingsPage = ({ onNavigate }) => {
     try {
         setLoading(true);
         
-        // Fetch buildings
-        const response = await api.get('location/buildings/', {
+        const response = await api.get('/location/buildings/', {
         headers: { Authorization: `Bearer ${localStorage.getItem('access_token')}` }
         });
-        // ... existing building logic ...
+        const buildingsData = Array.isArray(response.data) 
+          ? response.data 
+          : response.data.results || [];
+        setBuildings(buildingsData);
         
-        // ADD THIS: Fetch maintenance requests
-        const requestsResponse = await api.get('maintenance/requests/', {
+        const requestsResponse = await api.get('/maintenance/requests/', {
         headers: { Authorization: `Bearer ${localStorage.getItem('access_token')}` }
         });
         const requestsData = Array.isArray(requestsResponse.data) 
@@ -45,22 +47,25 @@ const BuildingsPage = ({ onNavigate }) => {
         setRequests(requestsData);
         
     } catch (error) {
-        // ... existing error handling ...
-    }
+        console.error('Error fetching data:', error);
+        alert('Failed to load buildings');
+        setBuildings([]);
+        setRequests([]);
+      } finally {
+        setLoading(false);
+      }
     };
 
   const fetchBuildingDetails = async (buildingId) => {
     try {
-      // Fetch floors for this building
-      const floorsResponse = await api.get(`location/buildings/${buildingId}/floors/`, {
+      const floorsResponse = await api.get(`/location/buildings/${buildingId}/floors/`, {
         headers: {
           Authorization: `Bearer ${localStorage.getItem('access_token')}`
         }
       });
       setFloors(floorsResponse.data);
 
-      // Fetch rooms for this building
-      const roomsResponse = await api.get(`location/buildings/${buildingId}/rooms/`, {
+      const roomsResponse = await api.get(`/location/buildings/${buildingId}/rooms/`, {
         headers: {
           Authorization: `Bearer ${localStorage.getItem('access_token')}`
         }
@@ -71,22 +76,18 @@ const BuildingsPage = ({ onNavigate }) => {
     }
   };
 
-    const searchFilteredBuildings = buildings.filter(building =>
-    building.name.toLowerCase().includes(searchTerm.toLowerCase())
-    );
-
   const handleDelete = async (id) => {
-    if (window.confirm('Are you sure you want to delete this building? This will also delete all associated floors and rooms.')) {
+    if (window.confirm('Are you sure you want to delete this request?')) {
       try {
-        await api.delete(`location/buildings/${id}/`, {
+        await api.delete(`/maintenance/requests/${id}/`, {
           headers: {
             Authorization: `Bearer ${localStorage.getItem('access_token')}`
           }
         });
         fetchBuildings();
       } catch (error) {
-        console.error('Error deleting building:', error);
-        alert('Failed to delete building');
+        console.error('Error deleting request:', error);
+        alert('Failed to delete request');
       }
     }
   };
@@ -95,13 +96,13 @@ const BuildingsPage = ({ onNavigate }) => {
     e.preventDefault();
     try {
       if (editingBuilding) {
-        await api.put(`location/buildings/${editingBuilding.id}/`, formData, {
+        await api.put(`/location/buildings/${editingBuilding.id}/`, formData, {
           headers: {
             Authorization: `Bearer ${localStorage.getItem('access_token')}`
           }
         });
       } else {
-        await api.post('location/buildings/', formData, {
+        await api.post('/location/buildings/', formData, {
           headers: {
             Authorization: `Bearer ${localStorage.getItem('access_token')}`
           }
@@ -141,36 +142,45 @@ const BuildingsPage = ({ onNavigate }) => {
     setShowDetailModal(true);
   };
 
-  useEffect(() => {
-    let temp = buildings;
+  const getFilteredRequests = () => {
+    let filtered = requests;
 
-    // Filter by selected building
-    if (selectedBuilding) {
-        temp = temp.filter((b) => b.id.toString() === selectedBuilding);
+    if (buildingFilter) {
+      filtered = filtered.filter(req => {
+        const reqBuildingId = req.building?.id || req.building;
+        return reqBuildingId === parseInt(buildingFilter);
+      });
     }
 
-    // Filter by issue count - count from requests array
-    if (issueFilter === "with") {
-        temp = temp.filter((b) => {
-        const issueCount = requests.filter(r => r.building === b.id || r.building?.id === b.id).length;
-        return issueCount > 0;
-        });
+    if (issueFilter === 'with') {
+      const buildingsWithIssues = [...new Set(requests.map(r => r.building?.id || r.building))];
+      filtered = filtered.filter(req => {
+        const reqBuildingId = req.building?.id || req.building;
+        return buildingsWithIssues.includes(reqBuildingId);
+      });
+    } else if (issueFilter === 'without') {
+      const buildingsWithIssues = [...new Set(requests.map(r => r.building?.id || r.building))];
+      const buildingsWithoutIssues = buildings.filter(b => !buildingsWithIssues.includes(b.id)).map(b => b.id);
+      filtered = filtered.filter(req => {
+        const reqBuildingId = req.building?.id || req.building;
+        return buildingsWithoutIssues.includes(reqBuildingId);
+      });
     }
 
-    if (issueFilter === "without") {
-        temp = temp.filter((b) => {
-        const issueCount = requests.filter(r => r.building === b.id || r.building?.id === b.id).length;
-        return issueCount === 0;
-        });
+    if (searchTerm) {
+      const searchLower = searchTerm.toLowerCase();
+      filtered = filtered.filter(req =>
+        (req.requester_name?.toLowerCase() || '').includes(searchLower) ||
+        (req.room?.toLowerCase() || '').includes(searchLower) ||
+        (req.category?.toLowerCase() || '').includes(searchLower) ||
+        (req.building?.name?.toLowerCase() || '').includes(searchLower)
+      );
     }
 
-    setFilteredBuildings(temp);
-    }, [selectedBuilding, issueFilter, buildings, requests]); // ADD requests to dependencies
-
-  
+    return filtered;
+  };
 
   return (
-    
     <div className="p-6 max-w-7xl mx-auto">
       <div className="mb-6">
         <button className="text-blue-600 hover:text-blue-800 mb-4 flex items-center gap-1">
@@ -178,36 +188,10 @@ const BuildingsPage = ({ onNavigate }) => {
                 ← Back to Management Overview
             </Link>
         </button>
-            {/* TWO DROPDOWNS SIDE BY SIDE */}
-        <div className="flex gap-4 mb-6">
-            {/* Building Selection */}
-            <select
-            className="border px-3 py-2 rounded w-1/2"
-            value={''}
-            onChange={(e) => setSelectedBuilding(e.target.value)}
-            >
-            <option value="">Select Building</option>
-            {buildings.map((b) => (
-                <option key={b.id} value={b.id}>
-                {b.name}
-                </option>
-            ))}
-            </select>
-
-            {/* Issue Filter */}
-            <select
-            className="border px-3 py-2 rounded w-1/2"
-            value={issueFilter}
-            onChange={(e) => setIssueFilter(e.target.value)}
-            >
-            <option value="">Filter by Issue</option>
-            <option value="with">With Issue</option>
-            <option value="without">No Issue</option>
-            </select>
-        </div>
-        <div className="flex justify-between items-center">
+        
+        <div className="flex justify-between items-center mb-6">
           <div>
-            <h1 className="text-3x  l font-bold text-gray-900">Buildings</h1>
+            <h1 className="text-3xl font-bold text-gray-900">Buildings</h1>
             <p className="text-gray-600 mt-1">Manage building locations and structure</p>
           </div>
           <button
@@ -222,126 +206,147 @@ const BuildingsPage = ({ onNavigate }) => {
 
       <div className="bg-white rounded-lg shadow-md">
         <div className="p-4 border-b">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-            <input
-              type="text"
-              placeholder="Search buildings..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
-            />
+          <div className="flex gap-4 mb-4">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+              <input
+                type="text"
+                placeholder="Search requests..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+              />
+            </div>
+            <select
+              value={buildingFilter}
+              onChange={(e) => setBuildingFilter(e.target.value)}
+              className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+            >
+              <option value="">All Buildings</option>
+              {buildings.map(building => (
+                <option key={building.id} value={building.id}>
+                  {building.name}
+                </option>
+              ))}
+            </select>
+            <select
+              value={issueFilter}
+              onChange={(e) => setIssueFilter(e.target.value)}
+              className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+            >
+              <option value="">All</option>
+              <option value="with">With Issue</option>
+              <option value="without">No Issue</option>
+            </select>
           </div>
         </div>
 
         {loading ? (
-          <div className="p-8 text-center text-gray-500">Loading buildings...</div>
+          <div className="p-8 text-center text-gray-500">Loading...</div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead className="bg-gray-50">
                 <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">User Issue</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Floor</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Building</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Room</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Category</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Assigned To</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">User Issue</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Floor</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Building</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Room</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Category</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Assigned To</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {requests.length === 0 ? (
-                    <tr>
-                    <td colSpan="8" className="px-6 py-8 text-center text-gray-500">
-                        No maintenance requests found.
+                {getFilteredRequests().length === 0 ? (
+                  <tr>
+                    <td colSpan="9" className="px-6 py-8 text-center text-gray-500">
+                      No maintenance requests found.
                     </td>
-                    </tr>
+                  </tr>
                 ) : (
-                    requests
-                    .filter(request => {
-                        // Filter by selected building
-                        if (selectedBuilding && request.building !== parseInt(selectedBuilding) && request.building?.id !== parseInt(selectedBuilding)) {
-                        return false;
-                        }
-                        // Filter by search term
-                        const searchLower = searchTerm.toLowerCase();
-                        return (
-                        (request.requester_name?.toLowerCase() || '').includes(searchLower) ||
-                        (request.room?.toLowerCase() || '').includes(searchLower) ||
-                        (request.category?.toLowerCase() || '').includes(searchLower)
-                        );
-                    })
-                    .map((request) => (
-                        <tr key={request.id} className="hover:bg-gray-50">
+                  getFilteredRequests().map((request) => {
+                    const assignedTo = request.assigned_to;
+                    let assignedName = 'Unassigned';
+                    
+                    if (assignedTo && typeof assignedTo === 'object') {
+                      const firstName = assignedTo.first_name || '';
+                      const lastName = assignedTo.last_name || '';
+                      const fullName = `${firstName} ${lastName}`.trim();
+                      assignedName = fullName || assignedTo.username || 'Unassigned';
+                    } else if (assignedTo) {
+                      assignedName = assignedTo;
+                    }
+
+                    return (
+                      <tr key={request.id} className="hover:bg-gray-50">
                         <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="text-sm text-gray-900">{request.id}</div>
+                          <div className="text-sm text-gray-900">{request.id}</div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="text-sm text-gray-900">{request.requester_name || 'None'}</div>
+                          <div className="text-sm text-gray-900">{request.requester_name || 'None'}</div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="text-sm text-gray-600">{request.floor || 'N/A'}</div>
+                          <div className="text-sm text-gray-600">{request.floor || 'N/A'}</div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="text-sm text-gray-600">{request.building?.name || request.building || 'N/A'}</div>
+                          <div className="text-sm text-gray-600">{request.building?.name || request.building || 'N/A'}</div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="text-sm text-gray-600">{request.room || 'N/A'}</div>
+                          <div className="text-sm text-gray-600">{request.room || 'N/A'}</div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="text-sm text-gray-600">{request.category || 'N/A'}</div>
+                          <div className="text-sm text-gray-600">{request.category || 'N/A'}</div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="text-sm text-gray-600">{request.assigned_to || 'Unassigned'}</div>
+                          <div className="text-sm text-gray-600">{assignedName}</div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
-                            <span className={`px-2 py-1 text-xs font-medium rounded-full ${
-                            request.status === 'working' ? 'bg-blue-100 text-blue-800' :
+                          <span className={`px-2 py-1 text-xs font-medium rounded-full ${
+                            request.status === 'in_progress' ? 'bg-blue-100 text-blue-800' :
                             request.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
-                            request.status === 'complete' ? 'bg-green-100 text-green-800' :
+                            request.status === 'completed' ? 'bg-green-100 text-green-800' :
                             'bg-gray-100 text-gray-800'
-                            }`}>
-                            {request.status || 'None'}
-                            </span>
+                          }`}>
+                            {request.status ? request.status.replace(/_/g, ' ').toUpperCase() : 'None'}
+                          </span>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-2">
                             <button 
-                                onClick={() => {/* view details */}}
-                                className="text-blue-600 hover:text-blue-800" 
-                                title="View"
+                              onClick={() => {/* view details */}}
+                              className="text-blue-600 hover:text-blue-800" 
+                              title="View"
                             >
-                                <Eye className="w-4 h-4" />
+                              <Eye className="w-4 h-4" />
                             </button>
                             <button
-                                onClick={() => {/* edit request */}}
-                                className="text-green-600 hover:text-green-800"
-                                title="Update"
+                              onClick={() => {/* update request */}}
+                              className="text-green-600 hover:text-green-800"
+                              title="Update"
                             >
-                                <Edit2 className="w-4 h-4" />
+                              <Edit2 className="w-4 h-4" />
                             </button>
                             <button
-                                onClick={() => handleDelete(request.id)}
-                                className="text-red-600 hover:text-red-800"
-                                title="Delete"
+                              onClick={() => handleDelete(request.id)}
+                              className="text-red-600 hover:text-red-800"
+                              title="Delete"
                             >
-                                <Trash2 className="w-4 h-4" />
+                              <Trash2 className="w-4 h-4" />
                             </button>
-                            </div>
+                          </div>
                         </td>
-                        </tr>
-                    ))
+                      </tr>
+                    );
+                  })
                 )}
-                </tbody>
+              </tbody>
             </table>
           </div>
         )}
       </div>
-
-      
 
       {/* Add/Edit Modal */}
       {showModal && (

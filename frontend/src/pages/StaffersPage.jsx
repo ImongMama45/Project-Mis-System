@@ -29,7 +29,7 @@ const StaffersPage = ({ onNavigate }) => {
     try {
       setLoading(true);
       
-      const response = await api.get('accounts/staffprofile/',{
+      const response = await api.get('accounts/staff/all/',{
         headers : {
           Authorization: `Bearer ${localStorage.getItem('access_token')}`
         }
@@ -38,16 +38,31 @@ const StaffersPage = ({ onNavigate }) => {
       // if (!response.ok) {
       //   throw new Error(`Error ${response.status}`);
       // }
-
       const data = response.data
-      setStaffers(data);
-    } catch (error) {
-      console.error('Error fetching staffers:', error);
-      alert('Failed to load staffers. Make sure you are logged in.');
-    } finally {
-      setLoading(false);
-    }
-  };
+
+      const staffArray = Array.isArray(data) ? data : [];
+      
+      console.log('Fetched staffers:', staffArray);
+      setStaffers(staffArray);
+          
+      } catch (error) {
+        console.error('Error fetching staffers:', error);
+        
+        // ✅ Better error handling
+        if (error.response?.status === 403) {
+          alert('You do not have permission to view staff members. Admin access required.');
+        } else if (error.response?.status === 401) {
+          alert('Authentication failed. Please log in again.');
+        } else {
+          alert('Failed to load staffers. Please try again.');
+        }
+        
+        // ✅ Set empty array on error to prevent filter issues
+        setStaffers([]);
+      } finally {
+        setLoading(false);
+      }
+    };
 
   const filteredStaffers = staffers.filter(staffer =>
     staffer.user.username.toLowerCase().includes(searchTerm.toLowerCase()) ||

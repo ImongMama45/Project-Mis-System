@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { requestAPI } from '../services/api';
 import Header from './Header.jsx';
+import Logo from '../images/Logo.png';
+import api, { maintenanceAPI, requestAPI } from '../api/axios';  // ✅ Import from axios.js
+
 
 function Dashboard() {
   const [stats, setStats] = useState({
@@ -140,6 +142,27 @@ function Dashboard() {
 
       {/* Main Content */}
       <div className="p-6">
+        <div className="pb-6 flex items-center space-x-6">
+          {/* Logo */}
+          <div className="w-20 h-20 rounded-full bg-white p-2 shadow-2xl flex items-center justify-center">
+            <img
+              className="w-full h-full object-contain"
+              src={Logo}
+              alt="Maintenance Tracker Logo"
+            />
+          </div>
+
+          {/* Text */}
+          <div className="flex flex-col">
+            <h1 className="text-2xl md:text-3xl font-bold text-gray-800">
+              Dalubhasaan ng Lungsod ng Lucena
+            </h1>
+            <h3 className="text-sm md:text-lg text-gray-500 font-medium">
+              Maintenance Tracker
+            </h3>
+          </div>
+        </div>
+
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Left Section - Stats and Graphs */}
           <div className="lg:col-span-2 space-y-6">
