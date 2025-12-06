@@ -32,10 +32,10 @@ function LandingPage() {
           {/* Title and Quote */}
           <div className="text-center mb-12 max-w-3xl animate-slide-up">
             <h1 className="text-5xl md:text-7xl font-bold text-white mb-6 drop-shadow-lg">
-              Dalubhasaan ng Lungsod ng Lucena
+              Maintenance Tracker DLL
             </h1>
             <p className="text-xl md:text-2xl text-blue-100 italic mb-4">
-              "Excellence in Education, Service to the Community"
+              "Basura mo, Isumbong mo!"
             </p>
             <p className="text-lg text-white/90">
               Streamline maintenance requests and keep our campus in top condition

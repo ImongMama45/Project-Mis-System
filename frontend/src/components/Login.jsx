@@ -49,7 +49,7 @@ function Login() {
 
   return (
     <div
-    className="relative flex justify-center items-center min-h-screen"
+    className="relative flex justify-center items-center min-h-screen animate-slide-up"
     style={{
       backgroundImage: "url(/src/images/bg.png)",
       backgroundPosition: "center",
@@ -59,11 +59,11 @@ function Login() {
   >
 
     {/* Dark overlay */}
-    <div className="absolute inset-0 bg-black/60"></div>
+    <div className="absolute inset-0 bg-black/60 animate-slide-up" ></div>
     {/* You can adjust /60 (60%) → /40 lighter, /80 darker */}
 
     {/* Content container (stays bright) */}
-    <div className="relative bg-white p-8 rounded-2xl shadow-2xl w-full max-w-md">
+    <div className="relative bg-white p-8 rounded-2xl shadow-2xl w-full max-w-md animate-slide-up">
       {/* Logo */}
       <div className="flex justify-center mb-6">
         <div className="mb-8 animate-fade-in">

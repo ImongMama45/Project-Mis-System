@@ -112,7 +112,7 @@ function UserDashboard() {
   const user = JSON.parse(localStorage.getItem('user') || '{}');
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50 animate-slide-up">
     <Header showSearch={true} />
       <div className="p-6">
         <div className="bg-white rounded-2xl shadow-lg p-6 mb-6">
@@ -293,7 +293,7 @@ function UserDashboard() {
               <div className="space-y-3">
                 <button
                   onClick={() => navigate('/submit-request')}
-                  className="w-full bg-green-500 hover:bg-green-600 text-white py-3 px-4 rounded-xl transition-colors text-center font-medium flex items-center justify-center"
+                  className="w-full bg-blue-500 hover:bg-blue-600 text-white py-3 px-4 rounded-xl transition-colors text-center font-medium flex items-center justify-center"
                 >
                   <FileText className="w-5 h-5 mr-2" />
                   Submit New Request
@@ -307,7 +307,7 @@ function UserDashboard() {
                 </button>
                 <button
                   onClick={() => navigate('/calendar')}
-                  className="w-full bg-purple-500 hover:bg-purple-600 text-white py-3 px-4 rounded-xl transition-colors text-center font-medium flex items-center justify-center"
+                  className="w-full bg-blue-500 hover:bg-blue-600 text-white py-3 px-4 rounded-xl transition-colors text-center font-medium flex items-center justify-center"
                 >
                   <Calendar className="w-5 h-5 mr-2" />
                   View Calendar
