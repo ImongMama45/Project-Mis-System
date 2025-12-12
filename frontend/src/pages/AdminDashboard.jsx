@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import Header from './Header.jsx';
+import Header from '../components/Header.jsx';
 import Logo from '../images/Logo.png';
-import api, { maintenanceAPI, requestAPI } from '../api/axios';  // ✅ Import from axios.js
+import api, { maintenanceAPI, requestAPI } from '../api/axios.js';  // ✅ Import from axios.js
 import Footer from '../components/Footer.jsx'
 
 
-function Dashboard() {
+function AdminDashboard() {
   const [stats, setStats] = useState({
     totalTasks: 0,
     pendingCount: 0,
@@ -16,11 +16,11 @@ function Dashboard() {
     recentRequests: [],
     statusTrend: [],
   });
-  const [showContactModal, setShowContactModal] = useState(false);
-  const [adminRequest, setAdminRequest] = useState({
-    subject: '',
-    message: '',
-  });
+  // const [showContactModal, setShowContactModal] = useState(false);
+  // const [adminRequest, setAdminRequest] = useState({
+  //   subject: '',
+  //   message: '',
+  // });
 
   useEffect(() => {
     fetchDashboardData();
@@ -122,16 +122,6 @@ function Dashboard() {
     }));
   };
 
-  const handleContactAdmin = async (e) => {
-    e.preventDefault();
-    try {
-      alert('Your request has been sent to the admin successfully!');
-      setShowContactModal(false);
-      setAdminRequest({ subject: '', message: '' });
-    } catch (error) {
-      alert('Failed to send request to admin');
-    }
-  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50">
@@ -302,7 +292,7 @@ function Dashboard() {
                           {request.request_type}
                         </h4>
                         <p className="text-sm text-gray-600">
-                          {request.building?.name || 'N/A'} - Room {request.room}
+                          {request.building?.name || 'N/A'} - Room {request.room?.name || request.room || 'N/A'}
                         </p>
                       </div>
                       <span className={`px-2 py-1 rounded text-xs font-semibold ${
@@ -342,7 +332,7 @@ function Dashboard() {
               </div>
             </div>
 
-            {/* Contact Admin */}
+            {/* Contact Admin
             <div className="bg-white rounded-2xl shadow-lg p-6 text-center">
               <div className="mb-4">
                 <div className="w-full h-48 bg-gray-100 rounded-lg flex items-center justify-center">
@@ -368,13 +358,13 @@ function Dashboard() {
               >
                 Contact Admin
               </button>
-            </div>
+            </div> */}
           </div>
         </div>
       </div>
 
-      {/* Contact Admin Modal */}
-      {showContactModal && (
+      
+      {/* {showContactModal && (
         <div
           className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50 p-4"
           onClick={() => setShowContactModal(false)}
@@ -434,10 +424,10 @@ function Dashboard() {
             </form>
           </div>
         </div>
-      )}
+      )} */}
       <Footer/>
     </div>
   );
 }
 
-export default Dashboard;
+export default AdminDashboard;

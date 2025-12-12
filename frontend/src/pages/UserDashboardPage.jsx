@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
 import { Calendar, MessageSquare, FileText, CheckCircle, Clock, AlertCircle } from 'lucide-react';
-import api from '../api/axios';
-import Header from './Header';
-import Footer from './Footer.jsx'
+import api from '../api/axios.js';
+import Header from '../components/Header.jsx';
+import Footer from '../components/Footer.jsx';
+import Logo from '../images/Logo.png';
 
 function UserDashboard() {
   const [stats, setStats] = useState({
@@ -115,13 +116,27 @@ function UserDashboard() {
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50 animate-slide-up">
     <Header showSearch={true} />
       <div className="p-6">
-        <div className="bg-white rounded-2xl shadow-lg p-6 mb-6">
-          <h2 className="text-2xl font-bold text-gray-800 mb-2">
-            Welcome back, {user.first_name || 'User'}!
-          </h2>
-          <p className="text-gray-600">
-            Track and manage your maintenance requests all in one place.
-          </p>
+        <div className="p-6">
+          <div className="pb-6 flex items-center space-x-6">
+            {/* Logo */}
+            <div className="w-20 h-20 rounded-full bg-white p-2 shadow-2xl flex items-center justify-center">
+              <img
+                className="w-full h-full object-contain"
+                src={Logo}
+                alt="Maintenance Tracker Logo"
+              />
+            </div>
+  
+            {/* Text */}
+            <div className="flex flex-col">
+              <h1 className="text-2xl md:text-3xl font-bold text-gray-800">
+                Dalubhasaan ng Lungsod ng Lucena
+              </h1>
+              <h3 className="text-sm md:text-lg text-gray-500 font-medium">
+                Maintenance Tracker
+              </h3>
+            </div>
+          </div>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

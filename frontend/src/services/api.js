@@ -138,5 +138,27 @@ export const calendarAPI = {
 };
 
 
+// Add to your existing API service
+export const buildingsAPI = {
+  getAll: () => api.get(`/location/buildings/`),
+  
+  getFloors: (buildingId) => 
+    api.get(`/location/buildings/${buildingId}/floors/`),
+  
+  getRooms: (floorId) => 
+    api.get(`/location/floors/${floorId}/rooms/`)
+};
+
+export const requestsAPI = {
+  getAll: () => api.get(`/maintenance/requests/`),
+  getByRoom: (roomId) => 
+    api.get(`/maintenance/requests/`, {
+      params: { room: roomId }
+    }),
+  create: (data) => api.post(`/maintenance/requests/create/`, data),
+  update: (id, data) => api.patch(`/maintenance/requests/${id}/`, data)
+};
+
+
 
 export default api;

@@ -12,7 +12,7 @@ import {
   Lightbulb,
   TrendingUp
 } from 'lucide-react';
-import api from '../api/axios';
+import api from '../api/axios.js';
 import Footer from '../components/Footer.jsx'
 
 function UserHome() {
@@ -21,12 +21,17 @@ function UserHome() {
   const [user, setUser] = useState(null);
 
   useEffect(() => {
-    const userData = JSON.parse(localStorage.getItem('user') || '{}');
-    setUser(userData);
-    fetchRecentRequests(userData.username);
-  }, []);
+  const userData = JSON.parse(localStorage.getItem('user') || '{}');
+  
+  const requesterName = userData.first_name && userData.last_name
+    ? `${userData.first_name} ${userData.last_name}`.toLowerCase().trim()
+    : userData.username?.toLowerCase() || '';
 
-  const fetchRecentRequests = async (username) => {
+  setUser(userData);
+  fetchRecentRequests(requesterName);
+}, []);
+
+  const fetchRecentRequests = async (requesterName) => {
     try {
       setLoading(true);
       const response = await api.get('/maintenance/requests/');
@@ -36,7 +41,7 @@ function UserHome() {
         : response.data.results || [];
       
       const userRequests = allRequests
-        .filter(req => req.requester_name?.toLowerCase() === username?.toLowerCase())
+        .filter(req => req.requester_name?.toLowerCase().trim() === requesterName)
         .slice(0, 3);
       
       setRecentRequests(userRequests);
@@ -47,6 +52,7 @@ function UserHome() {
       setLoading(false);
     }
   };
+
 
   const navigate = (path) => {
     window.location.href = path;
@@ -162,7 +168,7 @@ function UserHome() {
 
             {/* View Dashboard Card */}
             <button
-              onClick={() => navigate('/home')}
+              onClick={() => navigate('/user-dashboard')}
               className="group bg-gradient-to-br from-purple-500 to-pink-600 hover:from-purple-600 hover:to-pink-700 text-white rounded-2xl p-8 shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-1"
             >
               <div className="flex flex-col items-center text-center">

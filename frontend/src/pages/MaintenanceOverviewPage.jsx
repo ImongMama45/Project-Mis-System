@@ -1,7 +1,7 @@
 import React from 'react';
 import { useNavigate,Link } from 'react-router-dom';
-import Header from './Header';
-import Footer from './Footer.jsx'
+import Header from '../components/Header';
+import Footer from '../components/Footer.jsx'
 
 export default function ManagementOverview({ onNavigate }) {
   const cards = [

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Calendar, ChevronLeft, ChevronRight, User, Mail, Phone, Briefcase } from 'lucide-react';
 import {Link}from 'react-router-dom';
-import Header from './Header';
+import Header from '../components/Header';
 
 export default function UserAccountSettingsDashboard() {
   const [profile, setProfile] = useState(null);

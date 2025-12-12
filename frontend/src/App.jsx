@@ -4,18 +4,18 @@ import { AuthProvider, useAuth } from './context/AuthContext.jsx';
 import LandingPage from './pages/LandingPage.jsx';
 import Login from './components/Login.jsx';
 import Register from './components/Register.jsx';
-import Dashboard from './components/Dashboard.jsx';
-import MaintenanceList from './components/MaintenanceList.jsx';
-import MaintenanceRequestForm from './components/MaintenanceRequestForm.jsx';
+import AdminDashboard from './pages/AdminDashboard.jsx';
+import MaintenanceList from './pages/MaintenanceListPage.jsx';
+import MaintenanceRequestForm from './pages/MaintenanceRequestForm.jsx';
 import MaintenanceCalendar from './components/Calendar.jsx';
-import ManagementOverview from './components/MaintenanceOverviewPage.jsx';
+import ManagementOverview from './pages/MaintenanceOverviewPage.jsx';
 import ComplaintsPage from './pages/ComplaintsPage.jsx';
 import BuildingsPage from './pages/BuildingsPage.jsx';
 import StaffersPage from './pages/StaffersPage.jsx';
-import TrackRequest from './pages/TrackRequest.jsx';
-import AccountSettingsDashboard from './components/Account.jsx';
-import UserDashboard from './components/UserDashboard.jsx'
-import UserAccountSettingsDashboard from './components/UserProfile.jsx'
+import TrackRequest from './pages/TrackRequestPage.jsx';
+import AccountSettingsDashboard from './pages/AccountPage.jsx';
+import UserDashboard from './pages/UserDashboardPage.jsx'
+import UserAccountSettingsDashboard from './pages/UserAccountPage.jsx'
 import UserHome from './pages/UserHome.jsx'
 import AnalyticsPage from './pages/AnalyticsPage.jsx';
 import NotificationBell from './components/NotifactionBell.jsx';
@@ -71,7 +71,9 @@ function Sidebar() {
 
   // Role-based navigation configuration
   const getNavigationItems = () => {
-    const role = user?.role?.toLowerCase().trim() || 'user';
+    // ✅ FIXED: Handle role as object or string
+    const roleObj = user?.role;
+    const role = (typeof roleObj === 'object' ? roleObj.name : roleObj || 'user').toLowerCase().trim();
     
     console.log('Current user role:', role); // Debug log
         
@@ -88,7 +90,6 @@ function Sidebar() {
     // Staff navigation (matches: staff, maintenance staff)
     if (role === 'staff' || role === 'maintenance staff' || role.includes('staff')) {
       return [
-        { path: '/home', label: 'Dashboard' },
         { path: '/dashboard', label: 'Assigned Request' },
         { path: '/account', label: 'Account' }
       ];
@@ -104,6 +105,9 @@ function Sidebar() {
   };
 
   const navigationItems = getNavigationItems();
+  
+  // ✅ FIXED: Get display role safely
+  const displayRole = user?.role?.name || user?.role || 'Staff';
 
   return (
     <nav className="fixed left-0 top-0 w-60 h-screen bg-[#0a2540] text-white p-6 flex flex-col justify-between shadow-xl/30">
@@ -118,14 +122,15 @@ function Sidebar() {
             />
           </div>
           <h3 className="text-lg font-medium">Hi, {user?.username || 'User'}</h3>
-          <p className="text-sm text-gray-300 capitalize">{user?.role || 'Staff'}</p>
+          {/* ✅ FIXED: Display role safely */}
+          <p className="text-sm text-gray-300 capitalize">{displayRole}</p>
         </div>
 
         {/* Menu Items with Active Border */}
         <div className="space-y-2">
           {/* Regular navigation items */}
           {navigationItems.map((item) => {
-            if (item.path === '/submit-request') return null; // skip for now
+            if (item.path === '/submit-request') return null;
             return (
               <Link
                 key={item.path}
@@ -140,9 +145,9 @@ function Sidebar() {
               </Link>
             );
           })}
-
         </div>
-        <div className="pt-4"> {/* pt-4 adds spacing from the previous links */}
+        
+        <div className="pt-4">
           {navigationItems
             .filter(item => item.path === '/submit-request')
             .map(item => (
@@ -156,7 +161,6 @@ function Sidebar() {
             ))}
         </div>
       </div>
-
     </nav>
   );
 }
@@ -173,9 +177,12 @@ function RoleBasedDashboard() {
       navigate('/public-home', { replace: true });
     }
     // Admin and staff stay on /home
+    else if (role === 'staff') {
+      navigate('/dashboard', { replace: true });
+    }
   }, [user, navigate]);
   
-  return <Dashboard />;
+  return <AdminDashboard />;
 }
 
 function AppContent() {
@@ -273,17 +280,8 @@ function AppContent() {
               </PrivateRoute>
             }
           />
-          <Route
-            path="/requests"
-            element={
-              <PrivateRoute allowedRoles={['admin', 'administrator']}>
-                <div className="p-8">
-                  <h1 className="text-3xl font-bold">All Requests</h1>
-                  <p className="text-gray-600 mt-4">Request management coming soon...</p>
-                </div>
-              </PrivateRoute>
-            }
-          />
+        
+
           <Route
             path="/analytics"
             element={
@@ -334,6 +332,14 @@ function AppContent() {
             element={
               <PrivateRoute allowedRoles={['staff', 'maintenance staff', 'admin', 'administrator']}>
                 <IntegratedCalendar />
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/admin-dashboard"
+            element={
+              <PrivateRoute allowedRoles={['staff', 'maintenance staff', 'admin', 'administrator']}>
+                <AdminDashboard />
               </PrivateRoute>
             }
           />

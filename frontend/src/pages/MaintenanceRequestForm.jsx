@@ -1,9 +1,9 @@
+// /frontend/src/components/MaintenanceRequestForm.jsx
 import React, { useState, useEffect } from 'react';
 import api from '../api/axios'
-import Header from './Header';
+import Header from '../components/Header';
 import Footer from '../components/Footer.jsx'
-import { Upload, MapPin, User, Briefcase, FileText, Camera, CheckCircle } from 'lucide-react';
-import { redirect, Navigate } from 'react-router-dom';
+import { Upload, MapPin, User, FileText, Camera, CheckCircle } from 'lucide-react';
 
 function MaintenanceRequestForm({ onSuccess }) {
   const [buildings, setBuildings] = useState([]);
@@ -13,13 +13,11 @@ function MaintenanceRequestForm({ onSuccess }) {
   const [loadingProfile, setLoadingProfile] = useState(true);
   const [formData, setFormData] = useState({
     requester_name: '',
-    requester_role: 'student',
-    section: '',
-    student_id: '',
     description: '',
     building: '',
     floor: '',
     room: '',
+    role: 'staff', // Auto-detected from profile, default to staff
     issue_photo: null,
   });
   const [previewImage, setPreviewImage] = useState(null);
@@ -42,21 +40,32 @@ function MaintenanceRequestForm({ onSuccess }) {
       setUserProfile(profile);
       
       // Auto-fill form with user data
+      const fullName = profile.first_name && profile.last_name 
+        ? `${profile.first_name} ${profile.last_name}`.trim() 
+        : profile.username || '';
+      
+      // Auto-determine role from profile (only staff/instructor can make requests)
+      let userRole = 'staff'; // default
+      if (profile.staff_profile?.role) {
+        const staffRole = profile.staff_profile.role.toLowerCase();
+        if (staffRole.includes('instructor') || staffRole.includes('teacher')) {
+          userRole = 'instructor';
+        } else if (staffRole.includes('staff') || staffRole.includes('admin')) {
+          userRole = 'staff';
+        }
+      }
+      
       setFormData(prev => ({
         ...prev,
-        requester_name: profile.username || profile.first_name && profile.last_name 
-          ? `${profile.first_name} ${profile.last_name}`.trim() 
-          : '',
-        requester_role: profile.role?.toLowerCase() || 'student',
-        student_id: profile.student_id || '',
-        section: profile.section || '',
+        requester_name: fullName,
+        role: userRole, // Auto-set role silently
       }));
     } catch (err) {
       console.error('Error fetching user profile:', err);
       // If profile fetch fails, try to get basic user info from token
       const username = localStorage.getItem('username');
       if (username) {
-        setFormData(prev => ({ ...prev, requester_name: username }));
+        setFormData(prev => ({ ...prev, requester_name: username, role: 'staff' }));
       }
     } finally {
       setLoadingProfile(false);
@@ -84,9 +93,10 @@ function MaintenanceRequestForm({ onSuccess }) {
     }
   };
 
-  const fetchRooms = async (buildingId) => {
+  // ✅ FIXED: Fetch rooms by floor, not by building
+  const fetchRoomsByFloor = async (floorId) => {
     try {
-      const response = await api.get(`location/buildings/${buildingId}/rooms/`);
+      const response = await api.get(`location/floors/${floorId}/rooms/`);
       const data = Array.isArray(response.data) ? response.data : response.data.results || [];
       setRooms(data);
     } catch (err) {
@@ -99,10 +109,17 @@ function MaintenanceRequestForm({ onSuccess }) {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
 
+    // When building changes, fetch floors and reset floor/room
     if (name === 'building' && value) {
       fetchFloors(value);
-      fetchRooms(value);
       setFormData(prev => ({ ...prev, floor: '', room: '' }));
+      setRooms([]);
+    }
+
+    // When floor changes, fetch rooms for that floor
+    if (name === 'floor' && value) {
+      fetchRoomsByFloor(value);
+      setFormData(prev => ({ ...prev, room: '' }));
     }
   };
 
@@ -134,14 +151,12 @@ function MaintenanceRequestForm({ onSuccess }) {
     try {
       const data = new FormData();
       data.append("requester_name", formData.requester_name);
-      data.append("role", formData.requester_role);
       data.append("description", formData.description);
-      data.append("building", formData.building);
+      data.append("building_id", formData.building);
+      data.append("role", formData.role); // Auto-detected role (staff/instructor)
 
-      if (formData.floor) data.append("floor", formData.floor);
-      if (formData.room) data.append("room", formData.room);
-      if (formData.section) data.append("section", formData.section);
-      if (formData.student_id) data.append("student_id", formData.student_id);
+      if (formData.floor) data.append("floor_id", formData.floor);
+      if (formData.room) data.append("room_id", formData.room);
       if (formData.issue_photo) data.append("issue_photo", formData.issue_photo);
 
       await api.post('maintenance/requests/create/', data, {
@@ -151,18 +166,22 @@ function MaintenanceRequestForm({ onSuccess }) {
       setSuccess(true);
       
       // Reset form
+      const fullName = userProfile?.first_name && userProfile?.last_name 
+        ? `${userProfile.first_name} ${userProfile.last_name}`.trim() 
+        : userProfile?.username || '';
+      
       setFormData({
-        requester_name: userProfile?.username || '',
-        requester_role: userProfile?.role?.toLowerCase() || 'student',
-        section: userProfile?.section || '',
-        student_id: userProfile?.student_id || '',
+        requester_name: fullName,
         description: '',
         building: '',
         floor: '',
         room: '',
+        role: formData.role, // Keep the auto-detected role
         issue_photo: null,
       });
       setPreviewImage(null);
+      setFloors([]);
+      setRooms([]);
 
       // Auto-hide success message after 5 seconds
       setTimeout(() => setSuccess(false), 5000);
@@ -244,79 +263,24 @@ function MaintenanceRequestForm({ onSuccess }) {
               <div className="mb-8">
                 <div className="flex items-center mb-4">
                   <User className="w-5 h-5 text-indigo-600 mr-2" />
-                  <h2 className="text-xl font-semibold text-gray-900">Personal Information</h2>
+                  <h2 className="text-xl font-semibold text-gray-900">Your Information</h2>
                 </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {/* Name */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Your Name <span className="text-red-500">*</span>
-                    </label>
-                    <input
-                      type="text"
-                      name="requester_name"
-                      value={formData.requester_name}
-                      onChange={handleChange}
-                      required
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
-                      placeholder="Enter your full name"
-                    />
-                  </div>
-
-                  {/* Role */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Role <span className="text-red-500">*</span>
-                    </label>
-                    <div className="relative">
-                      <Briefcase className="absolute left-3 top-3.5 w-5 h-5 text-gray-400" />
-                      <select
-                        name="requester_role"
-                        value={formData.requester_role}
-                        onChange={handleChange}
-                        required
-                        className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent bg-white transition-all appearance-none"
-                      >
-                        <option value='N/A'>N/A</option>
-                        <option value="student">Student</option>
-                        <option value="staff">Staff</option>
-                        <option value="instructor">Instructor</option>
-                      </select>
-                    </div>
-                  </div>
-
-                  {/* Section (if student) */}
-                  {formData.requester_role === 'student' && (
-                    <>
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                          Section
-                        </label>
-                        <input
-                          type="text"
-                          name="section"
-                          value={formData.section}
-                          onChange={handleChange}
-                          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
-                          placeholder="e.g., BSCS 3A"
-                        />
-                      </div>
-
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                          Student ID
-                        </label>
-                        <input
-                          type="text"
-                          name="student_id"
-                          value={formData.student_id}
-                          onChange={handleChange}
-                          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
-                          placeholder="Enter your student ID"
-                        />
-                      </div>
-                    </>
-                  )}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Your Name <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    name="requester_name"
+                    value={formData.requester_name}
+                    onChange={handleChange}
+                    required
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
+                    placeholder="Enter your full name"
+                  />
+                  <p className="mt-1 text-xs text-gray-500">
+                    This will be used to identify your request
+                  </p>
                 </div>
               </div>
 
@@ -349,13 +313,13 @@ function MaintenanceRequestForm({ onSuccess }) {
                   {/* Floor */}
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Floor
+                      Floor {floors.length > 0 && <span className="text-gray-500">(Optional)</span>}
                     </label>
                     <select
                       name="floor"
                       value={formData.floor}
                       onChange={handleChange}
-                      disabled={!formData.building}
+                      disabled={!formData.building || floors.length === 0}
                       className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent bg-white transition-all disabled:bg-gray-100 disabled:cursor-not-allowed"
                     >
                       <option value="">Select Floor</option>
@@ -363,19 +327,24 @@ function MaintenanceRequestForm({ onSuccess }) {
                         <option key={f.id} value={f.id}>{f.label || `Floor ${f.number}`}</option>
                       ))}
                     </select>
+                    {!formData.building && (
+                      <p className="mt-1 text-xs text-gray-500">Select a building first</p>
+                    )}
+                    {formData.building && floors.length === 0 && (
+                      <p className="mt-1 text-xs text-gray-500">This building has no floors</p>
+                    )}
                   </div>
 
                   {/* Room */}
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Room <span className="text-red-500">*</span>
+                      Room {rooms.length > 0 && <span className="text-gray-500">(Optional)</span>}
                     </label>
                     <select
                       name="room"
                       value={formData.room}
                       onChange={handleChange}
-                      required
-                      disabled={!formData.building}
+                      disabled={!formData.floor || rooms.length === 0}
                       className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent bg-white transition-all disabled:bg-gray-100 disabled:cursor-not-allowed"
                     >
                       <option value="">Select Room</option>
@@ -383,6 +352,12 @@ function MaintenanceRequestForm({ onSuccess }) {
                         <option key={r.id} value={r.id}>{r.name}</option>
                       ))}
                     </select>
+                    {!formData.floor && (
+                      <p className="mt-1 text-xs text-gray-500">Select a floor first</p>
+                    )}
+                    {formData.floor && rooms.length === 0 && (
+                      <p className="mt-1 text-xs text-gray-500">No rooms available on this floor</p>
+                    )}
                   </div>
                 </div>
               </div>
@@ -406,6 +381,9 @@ function MaintenanceRequestForm({ onSuccess }) {
                     className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all resize-none"
                     placeholder="Please provide detailed information about the maintenance issue..."
                   />
+                  <p className="mt-1 text-xs text-gray-500">
+                    Be as specific as possible to help us address the issue quickly
+                  </p>
                 </div>
               </div>
 

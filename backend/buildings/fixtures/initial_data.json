@@ -3,9 +3,40 @@
     "model": "buildings.building",
     "pk": 1,
     "fields": {
-      "name": "DFA",
+      "name": "DFA Building",
       "has_floors": true,
-      "total_floors": 2
+      "total_floors": 2,
+      "description": "DFA Building"
+    }
+  },
+  {
+    "model": "buildings.building",
+    "pk": 2,
+    "fields": {
+      "name": "Annex Building",
+      "has_floors": true,
+      "total_floors": 4,
+      "description": "Annex Building"
+    }
+  },
+  {
+    "model": "buildings.building",
+    "pk": 3,
+    "fields": {
+      "name": "New Building",
+      "has_floors": true,
+      "total_floors": 3,
+      "description": "New Building (NB)"
+    }
+  },
+  {
+    "model": "buildings.building",
+    "pk": 4,
+    "fields": {
+      "name": "ABC Building",
+      "has_floors": true,
+      "total_floors": 2,
+      "description": "ABC Building"
     }
   },
   {
@@ -14,7 +45,7 @@
     "fields": {
       "building": 1,
       "number": 1,
-      "label": "1st"
+      "label": "Ground Floor"
     }
   },
   {
@@ -23,7 +54,70 @@
     "fields": {
       "building": 1,
       "number": 2,
-      "label": "2nd"
+      "label": "2nd Floor"
+    }
+  },
+  {
+    "model": "buildings.floor",
+    "pk": 3,
+    "fields": {
+      "building": 2,
+      "number": 1,
+      "label": "Ground Floor"
+    }
+  },
+  {
+    "model": "buildings.floor",
+    "pk": 4,
+    "fields": {
+      "building": 2,
+      "number": 2,
+      "label": "2nd Floor"
+    }
+  },
+  {
+    "model": "buildings.floor",
+    "pk": 5,
+    "fields": {
+      "building": 2,
+      "number": 3,
+      "label": "3rd Floor"
+    }
+  },
+  {
+    "model": "buildings.floor",
+    "pk": 6,
+    "fields": {
+      "building": 2,
+      "number": 4,
+      "label": "4th Floor"
+    }
+  },
+  {
+    "model": "buildings.floor",
+    "pk": 7,
+    "fields": {
+      "building": 3,
+      "number": 1,
+      "label": "Ground Floor"
+    }
+  },
+  {
+    "model": "buildings.floor",
+    "pk": 8,
+    "fields": {
+      "building": 4,
+      "number": 1,
+      "label": "Ground Floor"
+    }
+  },
+  {
+    "model": "buildings.floor",
+    "pk": 9,
+    "fields": {
+      "building": 4,
+      "number": 2,
+      "label": "2nd Floor"
     }
   },
   {
@@ -32,7 +126,8 @@
     "fields": {
       "building": 1,
       "floor": 1,
-      "name": "A1"
+      "name": "Library",
+      "room_type": "other"
     }
   },
   {
@@ -41,7 +136,8 @@
     "fields": {
       "building": 1,
       "floor": 1,
-      "name": "A2"
+      "name": "Admin Office",
+      "room_type": "office"
     }
   },
   {
@@ -50,7 +146,8 @@
     "fields": {
       "building": 1,
       "floor": 1,
-      "name": "A3"
+      "name": "FBS",
+      "room_type": "office"
     }
   },
   {
@@ -59,7 +156,8 @@
     "fields": {
       "building": 1,
       "floor": 1,
-      "name": "A4"
+      "name": "Janitorial & Supplies Stock Room",
+      "room_type": "storage"
     }
   },
   {
@@ -68,7 +166,8 @@
     "fields": {
       "building": 1,
       "floor": 1,
-      "name": "A5"
+      "name": "Mini Hotel",
+      "room_type": "other"
     }
   },
   {
@@ -77,7 +176,8 @@
     "fields": {
       "building": 1,
       "floor": 1,
-      "name": "A6"
+      "name": "Electrical Room",
+      "room_type": "utility"
     }
   },
   {
@@ -86,7 +186,8 @@
     "fields": {
       "building": 1,
       "floor": 1,
-      "name": "A7"
+      "name": "DHRS Storage Room",
+      "room_type": "storage"
     }
   },
   {
@@ -95,7 +196,8 @@
     "fields": {
       "building": 1,
       "floor": 1,
-      "name": "A8"
+      "name": "CR 1",
+      "room_type": "restroom"
     }
   },
   {
@@ -104,7 +206,8 @@
     "fields": {
       "building": 1,
       "floor": 1,
-      "name": "A9"
+      "name": "CR 2",
+      "room_type": "restroom"
     }
   },
   {
@@ -113,7 +216,8 @@
     "fields": {
       "building": 1,
       "floor": 1,
-      "name": "A10"
+      "name": "BTVTED/DHRS Kitchen",
+      "room_type": "laboratory"
     }
   },
   {
@@ -121,8 +225,9 @@
     "pk": 11,
     "fields": {
       "building": 1,
-      "floor": 1,
-      "name": "A11"
+      "floor": 2,
+      "name": "SSC Office",
+      "room_type": "office"
     }
   },
   {
@@ -130,179 +235,149 @@
     "pk": 12,
     "fields": {
       "building": 1,
-      "floor": 1,
-      "name": "A12"
-    }
-  },
-  {
-    "model": "buildings.building",
-    "pk": 2,
-    "fields": {
-      "name": "ANNEX",
-      "has_floors": true,
-      "total_floors": 4
-    }
-  },
-  {
-    "model": "buildings.floor",
-    "pk": 2,
-    "fields": {
-      "building": 2,
-      "number": 1,
-      "label": "1st"
-    }
-  },
-  {
-    "model": "buildings.floor",
-    "pk": 3,
-    "fields": {
-      "building": 2,
-      "number": 2,
-      "label": "2nd"
-    }
-  },
-  {
-    "model": "buildings.floor",
-    "pk": 4,
-    "fields": {
-      "building": 2,
-      "number": 3,
-      "label": "3rd"
-    }
-  },
-  {
-    "model": "buildings.floor",
-    "pk": 5,
-    "fields": {
-      "building": 2,
-      "number": 4,
-      "label": "4th"
+      "floor": 2,
+      "name": "CR Male",
+      "room_type": "restroom"
     }
   },
   {
     "model": "buildings.room",
     "pk": 13,
     "fields": {
-      "building": 2,
+      "building": 1,
       "floor": 2,
-      "name": "101/HR"
+      "name": "CR Female",
+      "room_type": "restroom"
     }
   },
   {
     "model": "buildings.room",
     "pk": 14,
     "fields": {
-      "building": 2,
+      "building": 1,
       "floor": 2,
-      "name": "102/Program Head of BSSW"
+      "name": "A1",
+      "room_type": "classroom"
     }
   },
   {
     "model": "buildings.room",
     "pk": 15,
     "fields": {
-      "building": 2,
+      "building": 1,
       "floor": 2,
-      "name": "103"
+      "name": "A2",
+      "room_type": "classroom"
     }
   },
   {
     "model": "buildings.room",
     "pk": 16,
     "fields": {
-      "building": 2,
+      "building": 1,
       "floor": 2,
-      "name": "104"
+      "name": "A3",
+      "room_type": "classroom"
     }
   },
   {
     "model": "buildings.room",
     "pk": 17,
     "fields": {
-      "building": 2,
+      "building": 1,
       "floor": 2,
-      "name": "105"
+      "name": "A4",
+      "room_type": "classroom"
     }
   },
   {
     "model": "buildings.room",
     "pk": 18,
     "fields": {
-      "building": 2,
+      "building": 1,
       "floor": 2,
-      "name": "Faculty Room"
+      "name": "A5",
+      "room_type": "classroom"
     }
   },
   {
     "model": "buildings.room",
     "pk": 19,
     "fields": {
-      "building": 2,
+      "building": 1,
       "floor": 2,
-      "name": "Publication Office"
+      "name": "A6",
+      "room_type": "classroom"
     }
   },
   {
     "model": "buildings.room",
     "pk": 20,
     "fields": {
-      "building": 2,
+      "building": 1,
       "floor": 2,
-      "name": "Guidance Services"
+      "name": "A7",
+      "room_type": "classroom"
     }
   },
   {
     "model": "buildings.room",
     "pk": 21,
     "fields": {
-      "building": 2,
+      "building": 1,
       "floor": 2,
-      "name": "Medical Services"
+      "name": "A8",
+      "room_type": "classroom"
     }
   },
   {
     "model": "buildings.room",
     "pk": 22,
     "fields": {
-      "building": 2,
+      "building": 1,
       "floor": 2,
-      "name": "Safety Management"
+      "name": "A9",
+      "room_type": "classroom"
     }
   },
   {
     "model": "buildings.room",
     "pk": 23,
     "fields": {
-      "building": 2,
+      "building": 1,
       "floor": 2,
-      "name": "Alumni Office"
+      "name": "A10",
+      "room_type": "classroom"
     }
   },
   {
     "model": "buildings.room",
     "pk": 24,
     "fields": {
-      "building": 2,
+      "building": 1,
       "floor": 2,
-      "name": "Registrar Office"
+      "name": "A11",
+      "room_type": "classroom"
     }
   },
   {
     "model": "buildings.room",
     "pk": 25,
     "fields": {
-      "building": 2,
-      "floor": 3,
-      "name": "201"
+      "building": 1,
+      "floor": 2,
+      "name": "A12",
+      "room_type": "classroom"
     }
   },
   {
     "model": "buildings.room",
     "pk": 26,
     "fields": {
-      "building": 2,
-      "floor": 3,
-      "name": "202"
+      "building": 1,
+      "floor": 2,
+      "name": "DLL Music and Arts",
+      "room_type": "other"
     }
   },
   {
@@ -311,7 +386,8 @@
     "fields": {
       "building": 2,
       "floor": 3,
-      "name": "203"
+      "name": "Finance",
+      "room_type": "office"
     }
   },
   {
@@ -320,7 +396,8 @@
     "fields": {
       "building": 2,
       "floor": 3,
-      "name": "204"
+      "name": "President's Office",
+      "room_type": "office"
     }
   },
   {
@@ -329,7 +406,8 @@
     "fields": {
       "building": 2,
       "floor": 3,
-      "name": "205"
+      "name": "Registrar Office",
+      "room_type": "office"
     }
   },
   {
@@ -338,7 +416,8 @@
     "fields": {
       "building": 2,
       "floor": 3,
-      "name": "AVR"
+      "name": "Property",
+      "room_type": "office"
     }
   },
   {
@@ -347,7 +426,8 @@
     "fields": {
       "building": 2,
       "floor": 3,
-      "name": "212"
+      "name": "Alumni Office",
+      "room_type": "office"
     }
   },
   {
@@ -356,7 +436,8 @@
     "fields": {
       "building": 2,
       "floor": 3,
-      "name": "211"
+      "name": "Clinic",
+      "room_type": "office"
     }
   },
   {
@@ -365,7 +446,8 @@
     "fields": {
       "building": 2,
       "floor": 3,
-      "name": "210"
+      "name": "Guidance Office",
+      "room_type": "office"
     }
   },
   {
@@ -374,7 +456,8 @@
     "fields": {
       "building": 2,
       "floor": 3,
-      "name": "DLL CRDS"
+      "name": "101/HR",
+      "room_type": "classroom"
     }
   },
   {
@@ -383,7 +466,8 @@
     "fields": {
       "building": 2,
       "floor": 3,
-      "name": "209"
+      "name": "102/Program Head of BSSW",
+      "room_type": "office"
     }
   },
   {
@@ -392,7 +476,8 @@
     "fields": {
       "building": 2,
       "floor": 3,
-      "name": "206"
+      "name": "103",
+      "room_type": "classroom"
     }
   },
   {
@@ -401,7 +486,8 @@
     "fields": {
       "building": 2,
       "floor": 3,
-      "name": "Program Head Accountancy"
+      "name": "104",
+      "room_type": "classroom"
     }
   },
   {
@@ -410,7 +496,8 @@
     "fields": {
       "building": 2,
       "floor": 3,
-      "name": "207"
+      "name": "105",
+      "room_type": "classroom"
     }
   },
   {
@@ -418,8 +505,9 @@
     "pk": 39,
     "fields": {
       "building": 2,
-      "floor": 4,
-      "name": "CL1"
+      "floor": 3,
+      "name": "CR Female",
+      "room_type": "restroom"
     }
   },
   {
@@ -427,8 +515,9 @@
     "pk": 40,
     "fields": {
       "building": 2,
-      "floor": 4,
-      "name": "CL2"
+      "floor": 3,
+      "name": "CR Male",
+      "room_type": "restroom"
     }
   },
   {
@@ -437,7 +526,8 @@
     "fields": {
       "building": 2,
       "floor": 4,
-      "name": "CL3"
+      "name": "219",
+      "room_type": "classroom"
     }
   },
   {
@@ -446,7 +536,8 @@
     "fields": {
       "building": 2,
       "floor": 4,
-      "name": "CL4"
+      "name": "215",
+      "room_type": "classroom"
     }
   },
   {
@@ -455,7 +546,8 @@
     "fields": {
       "building": 2,
       "floor": 4,
-      "name": "CL5"
+      "name": "214",
+      "room_type": "classroom"
     }
   },
   {
@@ -464,7 +556,8 @@
     "fields": {
       "building": 2,
       "floor": 4,
-      "name": "SL"
+      "name": "ICES Office",
+      "room_type": "office"
     }
   },
   {
@@ -472,8 +565,9 @@
     "pk": 45,
     "fields": {
       "building": 2,
-      "floor": 5,
-      "name": "401"
+      "floor": 4,
+      "name": "201",
+      "room_type": "classroom"
     }
   },
   {
@@ -481,125 +575,399 @@
     "pk": 46,
     "fields": {
       "building": 2,
-      "floor": 5,
-      "name": "402"
-    }
-  },
-  {
-    "model": "buildings.building",
-    "pk": 3,
-    "fields": {
-      "name": "NB",
-      "has_floors": true,
-      "total_floors": 3
-    }
-  },
-  {
-    "model": "buildings.floor",
-    "pk": 6,
-    "fields": {
-      "building": 3,
-      "number": 1,
-      "label": "1st"
-    }
-  },
-  {
-    "model": "buildings.floor",
-    "pk": 7,
-    "fields": {
-      "building": 3,
-      "number": 2,
-      "label": "2nd"
-    }
-  },
-  {
-    "model": "buildings.floor",
-    "pk": 8,
-    "fields": {
-      "building": 3,
-      "number": 3,
-      "label": "3rd"
+      "floor": 4,
+      "name": "202",
+      "room_type": "classroom"
     }
   },
   {
     "model": "buildings.room",
     "pk": 47,
     "fields": {
-      "building": 3,
-      "floor": 6,
-      "name": "NB1"
+      "building": 2,
+      "floor": 4,
+      "name": "203",
+      "room_type": "classroom"
     }
   },
   {
     "model": "buildings.room",
     "pk": 48,
     "fields": {
-      "building": 3,
-      "floor": 6,
-      "name": "NB2"
+      "building": 2,
+      "floor": 4,
+      "name": "204",
+      "room_type": "classroom"
     }
   },
   {
     "model": "buildings.room",
     "pk": 49,
     "fields": {
-      "building": 3,
-      "floor": 6,
-      "name": "NB3"
+      "building": 2,
+      "floor": 4,
+      "name": "205",
+      "room_type": "classroom"
     }
   },
   {
     "model": "buildings.room",
     "pk": 50,
     "fields": {
-      "building": 3,
-      "floor": 7,
-      "name": "NB4"
+      "building": 2,
+      "floor": 4,
+      "name": "206",
+      "room_type": "classroom"
     }
   },
   {
     "model": "buildings.room",
     "pk": 51,
     "fields": {
-      "building": 3,
-      "floor": 7,
-      "name": "NB5"
+      "building": 2,
+      "floor": 4,
+      "name": "213",
+      "room_type": "classroom"
     }
   },
   {
     "model": "buildings.room",
     "pk": 52,
     "fields": {
-      "building": 3,
-      "floor": 7,
-      "name": "NB6"
+      "building": 2,
+      "floor": 4,
+      "name": "212",
+      "room_type": "classroom"
     }
   },
   {
     "model": "buildings.room",
     "pk": 53,
     "fields": {
-      "building": 3,
-      "floor": 8,
-      "name": "NB7"
+      "building": 2,
+      "floor": 4,
+      "name": "211",
+      "room_type": "classroom"
     }
   },
   {
     "model": "buildings.room",
     "pk": 54,
     "fields": {
-      "building": 3,
-      "floor": 8,
-      "name": "NB8"
+      "building": 2,
+      "floor": 4,
+      "name": "210",
+      "room_type": "classroom"
     }
   },
   {
     "model": "buildings.room",
     "pk": 55,
     "fields": {
+      "building": 2,
+      "floor": 4,
+      "name": "209",
+      "room_type": "classroom"
+    }
+  },
+  {
+    "model": "buildings.room",
+    "pk": 56,
+    "fields": {
+      "building": 2,
+      "floor": 4,
+      "name": "208",
+      "room_type": "classroom"
+    }
+  },
+  {
+    "model": "buildings.room",
+    "pk": 57,
+    "fields": {
+      "building": 2,
+      "floor": 4,
+      "name": "207",
+      "room_type": "classroom"
+    }
+  },
+  {
+    "model": "buildings.room",
+    "pk": 58,
+    "fields": {
+      "building": 2,
+      "floor": 4,
+      "name": "CR Female",
+      "room_type": "restroom"
+    }
+  },
+  {
+    "model": "buildings.room",
+    "pk": 59,
+    "fields": {
+      "building": 2,
+      "floor": 4,
+      "name": "CR Male",
+      "room_type": "restroom"
+    }
+  },
+  {
+    "model": "buildings.room",
+    "pk": 60,
+    "fields": {
+      "building": 2,
+      "floor": 5,
+      "name": "Speech Lab",
+      "room_type": "laboratory"
+    }
+  },
+  {
+    "model": "buildings.room",
+    "pk": 61,
+    "fields": {
+      "building": 2,
+      "floor": 5,
+      "name": "CL1",
+      "room_type": "laboratory"
+    }
+  },
+  {
+    "model": "buildings.room",
+    "pk": 62,
+    "fields": {
+      "building": 2,
+      "floor": 5,
+      "name": "CL2",
+      "room_type": "laboratory"
+    }
+  },
+  {
+    "model": "buildings.room",
+    "pk": 63,
+    "fields": {
+      "building": 2,
+      "floor": 5,
+      "name": "CL3",
+      "room_type": "laboratory"
+    }
+  },
+  {
+    "model": "buildings.room",
+    "pk": 64,
+    "fields": {
+      "building": 2,
+      "floor": 5,
+      "name": "CL4",
+      "room_type": "laboratory"
+    }
+  },
+  {
+    "model": "buildings.room",
+    "pk": 65,
+    "fields": {
+      "building": 2,
+      "floor": 5,
+      "name": "CL5",
+      "room_type": "laboratory"
+    }
+  },
+  {
+    "model": "buildings.room",
+    "pk": 66,
+    "fields": {
+      "building": 2,
+      "floor": 6,
+      "name": "401",
+      "room_type": "classroom"
+    }
+  },
+  {
+    "model": "buildings.room",
+    "pk": 67,
+    "fields": {
+      "building": 2,
+      "floor": 6,
+      "name": "402",
+      "room_type": "classroom"
+    }
+  },
+  {
+    "model": "buildings.room",
+    "pk": 68,
+    "fields": {
       "building": 3,
+      "floor": 7,
+      "name": "CR Male",
+      "room_type": "restroom"
+    }
+  },
+  {
+    "model": "buildings.room",
+    "pk": 69,
+    "fields": {
+      "building": 3,
+      "floor": 7,
+      "name": "NB1",
+      "room_type": "classroom"
+    }
+  },
+  {
+    "model": "buildings.room",
+    "pk": 70,
+    "fields": {
+      "building": 3,
+      "floor": 7,
+      "name": "NB2",
+      "room_type": "classroom"
+    }
+  },
+  {
+    "model": "buildings.room",
+    "pk": 71,
+    "fields": {
+      "building": 3,
+      "floor": 7,
+      "name": "NB3",
+      "room_type": "classroom"
+    }
+  },
+  {
+    "model": "buildings.room",
+    "pk": 72,
+    "fields": {
+      "building": 3,
+      "floor": 7,
+      "name": "CR Female",
+      "room_type": "restroom"
+    }
+  },
+  {
+    "model": "buildings.room",
+    "pk": 73,
+    "fields": {
+      "building": 3,
+      "floor": 7,
+      "name": "NB4",
+      "room_type": "classroom"
+    }
+  },
+  {
+    "model": "buildings.room",
+    "pk": 74,
+    "fields": {
+      "building": 3,
+      "floor": 7,
+      "name": "NB5",
+      "room_type": "classroom"
+    }
+  },
+  {
+    "model": "buildings.room",
+    "pk": 75,
+    "fields": {
+      "building": 3,
+      "floor": 7,
+      "name": "NB6",
+      "room_type": "classroom"
+    }
+  },
+  {
+    "model": "buildings.room",
+    "pk": 76,
+    "fields": {
+      "building": 3,
+      "floor": 7,
+      "name": "NB7",
+      "room_type": "classroom"
+    }
+  },
+  {
+    "model": "buildings.room",
+    "pk": 77,
+    "fields": {
+      "building": 3,
+      "floor": 7,
+      "name": "NB8",
+      "room_type": "classroom"
+    }
+  },
+  {
+    "model": "buildings.room",
+    "pk": 78,
+    "fields": {
+      "building": 3,
+      "floor": 7,
+      "name": "NB9",
+      "room_type": "classroom"
+    }
+  },
+  {
+    "model": "buildings.room",
+    "pk": 79,
+    "fields": {
+      "building": 4,
       "floor": 8,
-      "name": "NB9"
+      "name": "CR Male",
+      "room_type": "restroom"
+    }
+  },
+  {
+    "model": "buildings.room",
+    "pk": 80,
+    "fields": {
+      "building": 4,
+      "floor": 8,
+      "name": "CR Female",
+      "room_type": "restroom"
+    }
+  },
+  {
+    "model": "buildings.room",
+    "pk": 81,
+    "fields": {
+      "building": 4,
+      "floor": 8,
+      "name": "Kitchen Laboratory",
+      "room_type": "laboratory"
+    }
+  },
+  {
+    "model": "buildings.room",
+    "pk": 82,
+    "fields": {
+      "building": 4,
+      "floor": 9,
+      "name": "CR Male",
+      "room_type": "restroom"
+    }
+  },
+  {
+    "model": "buildings.room",
+    "pk": 83,
+    "fields": {
+      "building": 4,
+      "floor": 9,
+      "name": "CR Female",
+      "room_type": "restroom"
+    }
+  },
+  {
+    "model": "buildings.room",
+    "pk": 84,
+    "fields": {
+      "building": 4,
+      "floor": 9,
+      "name": "Lecture Room 1",
+      "room_type": "classroom"
+    }
+  },
+  {
+    "model": "buildings.room",
+    "pk": 85,
+    "fields": {
+      "building": 4,
+      "floor": 9,
+      "name": "Lecture Room 2",
+      "room_type": "classroom"
     }
   }
 ]

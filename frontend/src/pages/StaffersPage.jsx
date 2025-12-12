@@ -3,6 +3,7 @@ import { Search, Plus, Edit2, Trash2, X } from 'lucide-react';
 import api from '../api/axios'
 import { Link } from 'react-router-dom';
 import Footer from '../components/Footer.jsx'
+import Header from '../components/Header.jsx';
 
 const StaffersPage = ({ onNavigate }) => {
   const [staffers, setStaffers] = useState([]);
@@ -167,6 +168,8 @@ const StaffersPage = ({ onNavigate }) => {
   };
 
   return (
+    <>
+    <Header/>
     <div className="p-6 max-w-7xl mx-auto">
       <div className="mb-6">
         <button className="text-blue-600 hover:text-blue-800 mb-4 flex items-center gap-1">
@@ -402,8 +405,9 @@ const StaffersPage = ({ onNavigate }) => {
           </div>
         </div>
       )}
-      <Footer/>
     </div>
+    <Footer/>
+    </>
   );
 };
 

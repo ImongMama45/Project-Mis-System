@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Calendar, ChevronLeft, ChevronRight, User, Mail, Phone, Briefcase } from 'lucide-react';
 import {Link}from 'react-router-dom';
-import Footer from './Footer.jsx'
+import Footer from '../components/Footer.jsx'
 
 export default function AccountSettingsDashboard() {
   const [profile, setProfile] = useState(null);
