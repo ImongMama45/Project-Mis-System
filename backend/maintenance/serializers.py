@@ -38,7 +38,7 @@ class MaintenanceRequestSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'building', 'building_id', 'floor', 'floor_id', 'room', 'room_id',
             'requester_name', 'role', 'section', 'student_id',
-            'description', 'issue_photo',
+            'description', 'issue_photo', 'rejection_reason',
             'status', 'created_at', 'updated_at',
             'assigned_to', 'assigned_to_details', 'assigned_to_details_maintenance',
             'created_by',

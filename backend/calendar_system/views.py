@@ -1,3 +1,4 @@
+# calendar_system/views.py - UPDATED VERSION
 from rest_framework import permissions
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -54,15 +55,61 @@ class CalendarMonthView(APIView):
         year = request.query_params.get("year")
         month = request.query_params.get("month")
 
+        # ✅ DEBUG: Print what we received
+        print(f"📅 CalendarMonthView called with year={year}, month={month}")
+
         if not year or not month:
             return Response({"error": "year and month required"}, status=400)
 
-        # Fetch schedules with related data
+        # ✅ CRITICAL FIX: Add select_related and prefetch_related
+        # This fetches all nested data in ONE query instead of N+1 queries
         schedules = MaintenanceSchedule.objects.filter(
             schedule_date__year=year, 
             schedule_date__month=month
-        ).select_related("request", "assigned_staff", "request__building")
+        ).select_related(
+            "request",  # Fetch the maintenance request
+            "request__building",  # Fetch the building
+            "request__floor",  # Fetch the floor
+            "request__room",  # Fetch the room
+            "request__assigned_to",  # Fetch assigned user
+            "assigned_staff"  # Fetch schedule assigned staff
+        ).exclude(
+            request__status='for_approval'  # ✅ Exclude for_approval at DB level
+        )
+
+        # ✅ DEBUG: Print query results
+        print(f"📊 Found {schedules.count()} schedules for {year}-{month}")
+        for schedule in schedules:
+            print(f"  - Schedule #{schedule.id}: {schedule.schedule_date}, Request: #{schedule.request.id}, Status: {schedule.request.status}")
 
         serializer = MaintenanceScheduleSerializer(schedules, many=True)
+        
+        # ✅ DEBUG: Print serialized data
+        print(f"📤 Returning {len(serializer.data)} schedules")
+        
         return Response(serializer.data)
 
+
+# ✅ BONUS: Add this view to get ALL schedules (for debugging/fallback)
+class CalendarAllView(APIView):
+    """Get all schedules (for debugging or if month filter doesn't work)"""
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        print("📅 CalendarAllView called - fetching ALL schedules")
+        
+        schedules = MaintenanceSchedule.objects.all().select_related(
+            "request",
+            "request__building",
+            "request__floor",
+            "request__room",
+            "request__assigned_to",
+            "assigned_staff"
+        ).exclude(
+            request__status='for_approval'
+        )
+
+        print(f"📊 Total schedules: {schedules.count()}")
+        
+        serializer = MaintenanceScheduleSerializer(schedules, many=True)
+        return Response(serializer.data)

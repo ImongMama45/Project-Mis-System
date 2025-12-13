@@ -30,16 +30,6 @@
     }
   },
   {
-    "model": "buildings.building",
-    "pk": 4,
-    "fields": {
-      "name": "ABC Building",
-      "has_floors": true,
-      "total_floors": 2,
-      "description": "ABC Building"
-    }
-  },
-  {
     "model": "buildings.floor",
     "pk": 1,
     "fields": {
@@ -102,22 +92,22 @@
       "label": "Ground Floor"
     }
   },
-  {
+    {
     "model": "buildings.floor",
     "pk": 8,
     "fields": {
-      "building": 4,
-      "number": 1,
-      "label": "Ground Floor"
+      "building": 3,
+      "number": 2,
+      "label": "2nd Floor"
     }
   },
-  {
+    {
     "model": "buildings.floor",
     "pk": 9,
     "fields": {
-      "building": 4,
-      "number": 2,
-      "label": "2nd Floor"
+      "building": 3,
+      "number": 3,
+      "label": "3rd Floor"
     }
   },
   {
@@ -715,7 +705,7 @@
     "pk": 60,
     "fields": {
       "building": 2,
-      "floor": 5,
+      "floor": 3,
       "name": "Speech Lab",
       "room_type": "laboratory"
     }
@@ -725,7 +715,7 @@
     "pk": 61,
     "fields": {
       "building": 2,
-      "floor": 5,
+      "floor": 3,
       "name": "CL1",
       "room_type": "laboratory"
     }
@@ -735,7 +725,7 @@
     "pk": 62,
     "fields": {
       "building": 2,
-      "floor": 5,
+      "floor": 3,
       "name": "CL2",
       "room_type": "laboratory"
     }
@@ -745,7 +735,7 @@
     "pk": 63,
     "fields": {
       "building": 2,
-      "floor": 5,
+      "floor": 3,
       "name": "CL3",
       "room_type": "laboratory"
     }
@@ -755,7 +745,7 @@
     "pk": 64,
     "fields": {
       "building": 2,
-      "floor": 5,
+      "floor": 3,
       "name": "CL4",
       "room_type": "laboratory"
     }
@@ -765,7 +755,7 @@
     "pk": 65,
     "fields": {
       "building": 2,
-      "floor": 5,
+      "floor": 3,
       "name": "CL5",
       "room_type": "laboratory"
     }
@@ -775,7 +765,7 @@
     "pk": 66,
     "fields": {
       "building": 2,
-      "floor": 6,
+      "floor": 4,
       "name": "401",
       "room_type": "classroom"
     }
@@ -785,7 +775,7 @@
     "pk": 67,
     "fields": {
       "building": 2,
-      "floor": 6,
+      "floor": 4,
       "name": "402",
       "room_type": "classroom"
     }
@@ -795,7 +785,7 @@
     "pk": 68,
     "fields": {
       "building": 3,
-      "floor": 7,
+      "floor": 1,
       "name": "CR Male",
       "room_type": "restroom"
     }
@@ -805,7 +795,7 @@
     "pk": 69,
     "fields": {
       "building": 3,
-      "floor": 7,
+      "floor": 1,
       "name": "NB1",
       "room_type": "classroom"
     }
@@ -815,7 +805,7 @@
     "pk": 70,
     "fields": {
       "building": 3,
-      "floor": 7,
+      "floor": 1,
       "name": "NB2",
       "room_type": "classroom"
     }
@@ -825,7 +815,7 @@
     "pk": 71,
     "fields": {
       "building": 3,
-      "floor": 7,
+      "floor": 1,
       "name": "NB3",
       "room_type": "classroom"
     }
@@ -835,7 +825,7 @@
     "pk": 72,
     "fields": {
       "building": 3,
-      "floor": 7,
+      "floor": 1,
       "name": "CR Female",
       "room_type": "restroom"
     }
@@ -845,7 +835,7 @@
     "pk": 73,
     "fields": {
       "building": 3,
-      "floor": 7,
+      "floor": 2,
       "name": "NB4",
       "room_type": "classroom"
     }
@@ -855,7 +845,7 @@
     "pk": 74,
     "fields": {
       "building": 3,
-      "floor": 7,
+      "floor": 2,
       "name": "NB5",
       "room_type": "classroom"
     }
@@ -865,7 +855,7 @@
     "pk": 75,
     "fields": {
       "building": 3,
-      "floor": 7,
+      "floor": 2,
       "name": "NB6",
       "room_type": "classroom"
     }
@@ -875,7 +865,7 @@
     "pk": 76,
     "fields": {
       "building": 3,
-      "floor": 7,
+      "floor": 3,
       "name": "NB7",
       "room_type": "classroom"
     }
@@ -885,7 +875,7 @@
     "pk": 77,
     "fields": {
       "building": 3,
-      "floor": 7,
+      "floor": 3,
       "name": "NB8",
       "room_type": "classroom"
     }
@@ -895,78 +885,8 @@
     "pk": 78,
     "fields": {
       "building": 3,
-      "floor": 7,
+      "floor": 3,
       "name": "NB9",
-      "room_type": "classroom"
-    }
-  },
-  {
-    "model": "buildings.room",
-    "pk": 79,
-    "fields": {
-      "building": 4,
-      "floor": 8,
-      "name": "CR Male",
-      "room_type": "restroom"
-    }
-  },
-  {
-    "model": "buildings.room",
-    "pk": 80,
-    "fields": {
-      "building": 4,
-      "floor": 8,
-      "name": "CR Female",
-      "room_type": "restroom"
-    }
-  },
-  {
-    "model": "buildings.room",
-    "pk": 81,
-    "fields": {
-      "building": 4,
-      "floor": 8,
-      "name": "Kitchen Laboratory",
-      "room_type": "laboratory"
-    }
-  },
-  {
-    "model": "buildings.room",
-    "pk": 82,
-    "fields": {
-      "building": 4,
-      "floor": 9,
-      "name": "CR Male",
-      "room_type": "restroom"
-    }
-  },
-  {
-    "model": "buildings.room",
-    "pk": 83,
-    "fields": {
-      "building": 4,
-      "floor": 9,
-      "name": "CR Female",
-      "room_type": "restroom"
-    }
-  },
-  {
-    "model": "buildings.room",
-    "pk": 84,
-    "fields": {
-      "building": 4,
-      "floor": 9,
-      "name": "Lecture Room 1",
-      "room_type": "classroom"
-    }
-  },
-  {
-    "model": "buildings.room",
-    "pk": 85,
-    "fields": {
-      "building": 4,
-      "floor": 9,
-      "name": "Lecture Room 2",
       "room_type": "classroom"
     }
   }
