@@ -1,7 +1,3 @@
-
-You said:
-Can you improve this to be included in my "README" in my GitHub repo
-
 There are 3 roles in this website 
 
 1) User - Can submit requests can track requests
