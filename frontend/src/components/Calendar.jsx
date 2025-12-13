@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { maintenanceAPI } from '../services/api';
+import Header from './Header';
+import Footer from './Footer';
 import { Calendar, Clock, MapPin, User } from 'lucide-react';
 
 function MaintenanceCalendar() {
@@ -148,6 +150,8 @@ function MaintenanceCalendar() {
   };
 
   return (
+    <>
+    <Header />
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 p-6">
       <div className="max-w-6xl mx-auto">
         {/* Header */}
@@ -367,6 +371,8 @@ function MaintenanceCalendar() {
         )}
       </div>
     </div>
+    <Footer />
+    </>
   );
 }
 

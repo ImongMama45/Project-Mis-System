@@ -1,9 +1,8 @@
 import React, { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { X, UserPlus, Mail, Lock, User, Shield, Eye, EyeOff, CheckCircle } from 'lucide-react';
 import { useAuth } from '../context/AuthContext.jsx';
-import { UserPlus, Mail, Lock, User, Shield, Eye, EyeOff, ArrowLeft, CheckCircle } from 'lucide-react';
 
-function Register() {
+function RegisterModal({ isOpen, onClose }) {
   const [formData, setFormData] = useState({
     username: '',
     email: '',
@@ -19,11 +18,10 @@ function Register() {
   const [showPassword, setShowPassword] = useState(false);
   const [showPassword2, setShowPassword2] = useState(false);
   const [passwordStrength, setPasswordStrength] = useState(0);
+  const [success, setSuccess] = useState(false);
 
-  const navigate = useNavigate();
-  const { register, user } = useAuth();
+  const { register } = useAuth();
 
-  // Password strength checker
   const checkPasswordStrength = (password) => {
     let strength = 0;
     if (password.length >= 8) strength++;
@@ -56,7 +54,6 @@ function Register() {
     e.preventDefault();
     setError('');
 
-    // Validation
     if (formData.password !== formData.password2) {
       setError('Passwords do not match');
       return;
@@ -72,8 +69,21 @@ function Register() {
     const result = await register(formData);
 
     if (result.success) {
-      alert('✅ Registration successful! Please login.');
-      navigate('/login');
+      setSuccess(true);
+      setTimeout(() => {
+        setSuccess(false);
+        onClose();
+        // Reset form
+        setFormData({
+          username: '',
+          email: '',
+          password: '',
+          password2: '',
+          first_name: '',
+          last_name: '',
+          role: 'user',
+        });
+      }, 2000);
     } else {
       setError(result.error || 'Registration failed. Please try again.');
     }
@@ -86,6 +96,21 @@ function Register() {
       ...formData,
       [e.target.name]: e.target.value
     });
+  };
+
+  const handleClose = () => {
+    setError('');
+    setSuccess(false);
+    setFormData({
+      username: '',
+      email: '',
+      password: '',
+      password2: '',
+      first_name: '',
+      last_name: '',
+      role: 'user',
+    });
+    onClose();
   };
 
   const roleInfo = {
@@ -112,47 +137,44 @@ function Register() {
     }
   };
 
-  return (
-    <div 
-      className="relative flex justify-center items-center min-h-screen py-8 px-4"
-      style={{
-        backgroundImage: "url(/src/images/bg.png)",
-        backgroundPosition: "center",
-        backgroundRepeat: "no-repeat",
-        backgroundSize: "cover",
-      }}
-    >
-      {/* Overlay */}
-      <div className="absolute inset-0 bg-gradient-to-br from-black/70 to-black/50"></div>
+  if (!isOpen) return null;
 
-      {/* Main Container */}
-      <div className="relative bg-white rounded-3xl shadow-2xl w-full max-w-2xl overflow-hidden">
-        {/* Header Section */}
-        <div className="bg-gradient-to-r from-blue-600 to-indigo-600 p-8 text-white">
+  return (
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+      {/* Backdrop */}
+      <div 
+        className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+        onClick={handleClose}
+      />
+
+      {/* Modal */}
+      <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden">
+        {/* Header */}
+        <div className="bg-gradient-to-r from-blue-600 to-indigo-600 p-6 text-white relative">
+          <button
+            onClick={handleClose}
+            className="absolute top-4 right-4 p-2 hover:bg-white/20 rounded-full transition-colors"
+          >
+            <X className="w-6 h-6" />
+          </button>
           <div className="flex items-center gap-3 mb-2">
             <UserPlus className="w-8 h-8" />
-            <h2 className="text-3xl font-bold">
-              {user?.role === 'admin' ? 'Create New Account' : 'Register'}
-            </h2>
+            <h2 className="text-3xl font-bold">Create New Staff Account</h2>
           </div>
-          <p className="text-blue-100">
-            {user?.role === 'admin' 
-              ? 'Add a new user to the system' 
-              : 'Join our maintenance management system'}
-          </p>
+          <p className="text-blue-100">Add a new user to the system</p>
         </div>
 
-        {/* Form Section */}
-        <div className="p-8">
-          {/* Back Button (Admin Only) */}
-          {user?.role === 'admin' && (
-            <Link 
-              to="/home" 
-              className="inline-flex items-center gap-2 text-gray-600 hover:text-blue-600 mb-6 transition-colors"
-            >
-              <ArrowLeft className="w-4 h-4" />
-              Back to Dashboard
-            </Link>
+        {/* Form Content - Scrollable */}
+        <div className="p-6 overflow-y-auto max-h-[calc(90vh-140px)]">
+          {/* Success Message */}
+          {success && (
+            <div className="bg-green-50 border-l-4 border-green-500 p-4 rounded-lg mb-6 flex items-start gap-3 animate-fade-in">
+              <CheckCircle className="w-6 h-6 text-green-500 flex-shrink-0" />
+              <div>
+                <p className="font-semibold text-green-800">Success!</p>
+                <p className="text-green-600 text-sm">Account created successfully.</p>
+              </div>
+            </div>
           )}
 
           {/* Error Message */}
@@ -166,12 +188,12 @@ function Register() {
             </div>
           )}
           
-          <form onSubmit={handleSubmit} className="space-y-6">
+          <form onSubmit={handleSubmit} className="space-y-5">
             {/* Name Fields */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="block mb-2 text-gray-700 font-semibold text-sm">
-                  First Name
+                  First Name *
                 </label>
                 <div className="relative">
                   <User className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
@@ -181,7 +203,7 @@ function Register() {
                     value={formData.first_name}
                     onChange={handleChange}
                     required
-                    className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                    className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
                     placeholder="John"
                   />
                 </div>
@@ -189,7 +211,7 @@ function Register() {
 
               <div>
                 <label className="block mb-2 text-gray-700 font-semibold text-sm">
-                  Last Name
+                  Last Name *
                 </label>
                 <div className="relative">
                   <User className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
@@ -199,7 +221,7 @@ function Register() {
                     value={formData.last_name}
                     onChange={handleChange}
                     required
-                    className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                    className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
                     placeholder="Doe"
                   />
                 </div>
@@ -209,7 +231,7 @@ function Register() {
             {/* Username */}
             <div>
               <label className="block mb-2 text-gray-700 font-semibold text-sm">
-                Username
+                Username *
               </label>
               <div className="relative">
                 <User className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
@@ -219,7 +241,7 @@ function Register() {
                   value={formData.username}
                   onChange={handleChange}
                   required
-                  className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                  className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
                   placeholder="johndoe"
                 />
               </div>
@@ -228,7 +250,7 @@ function Register() {
             {/* Email */}
             <div>
               <label className="block mb-2 text-gray-700 font-semibold text-sm">
-                Email Address
+                Email Address *
               </label>
               <div className="relative">
                 <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
@@ -238,58 +260,56 @@ function Register() {
                   value={formData.email}
                   onChange={handleChange}
                   required
-                  className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                  className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
                   placeholder="john.doe@example.com"
                 />
               </div>
             </div>
 
-            {/* Role Selection (Admin Only) */}
-            {user?.role === 'admin' && (
-              <div>
-                <label className="block mb-3 text-gray-700 font-semibold text-sm">
-                  User Role
-                </label>
-                <div className="space-y-3">
-                  {Object.entries(roleInfo).map(([roleKey, info]) => {
-                    const Icon = info.icon;
-                    return (
-                      <label
-                        key={roleKey}
-                        className={`flex items-start gap-4 p-4 border-2 rounded-xl cursor-pointer transition-all ${
-                          formData.role === roleKey
-                            ? `${info.borderColor} ${info.bgColor}`
-                            : 'border-gray-200 hover:border-gray-300 bg-white'
-                        }`}
-                      >
-                        <input
-                          type="radio"
-                          name="role"
-                          value={roleKey}
-                          checked={formData.role === roleKey}
-                          onChange={handleChange}
-                          className="mt-1"
-                        />
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2 mb-1">
-                            <Icon className={`w-5 h-5 ${info.color}`} />
-                            <span className="font-semibold text-gray-800 capitalize">
-                              {roleKey === 'staff' ? 'Maintenance Staff' : roleKey.charAt(0).toUpperCase() + roleKey.slice(1)}
-                            </span>
-                          </div>
-                          <p className="text-sm text-gray-600">{info.description}</p>
+            {/* Role Selection */}
+            <div>
+              <label className="block mb-3 text-gray-700 font-semibold text-sm">
+                User Role *
+              </label>
+              <div className="space-y-2">
+                {Object.entries(roleInfo).map(([roleKey, info]) => {
+                  const Icon = info.icon;
+                  return (
+                    <label
+                      key={roleKey}
+                      className={`flex items-start gap-3 p-3 border-2 rounded-lg cursor-pointer transition-all ${
+                        formData.role === roleKey
+                          ? `${info.borderColor} ${info.bgColor}`
+                          : 'border-gray-200 hover:border-gray-300 bg-white'
+                      }`}
+                    >
+                      <input
+                        type="radio"
+                        name="role"
+                        value={roleKey}
+                        checked={formData.role === roleKey}
+                        onChange={handleChange}
+                        className="mt-1"
+                      />
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-1">
+                          <Icon className={`w-4 h-4 ${info.color}`} />
+                          <span className="font-semibold text-gray-800 capitalize text-sm">
+                            {roleKey === 'staff' ? 'Maintenance Staff' : roleKey.charAt(0).toUpperCase() + roleKey.slice(1)}
+                          </span>
                         </div>
-                      </label>
-                    );
-                  })}
-                </div>
+                        <p className="text-xs text-gray-600">{info.description}</p>
+                      </div>
+                    </label>
+                  );
+                })}
               </div>
-            )}
+            </div>
 
             {/* Password */}
             <div>
               <label className="block mb-2 text-gray-700 font-semibold text-sm">
-                Password
+                Password *
               </label>
               <div className="relative">
                 <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
@@ -299,7 +319,7 @@ function Register() {
                   value={formData.password}
                   onChange={handlePasswordChange}
                   required
-                  className="w-full pl-10 pr-12 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                  className="w-full pl-10 pr-12 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
                   placeholder="••••••••"
                 />
                 <button
@@ -311,11 +331,10 @@ function Register() {
                 </button>
               </div>
               
-              {/* Password Strength Indicator */}
               {formData.password && (
                 <div className="mt-2">
                   <div className="flex items-center gap-2 mb-1">
-                    <div className="flex-1 bg-gray-200 rounded-full h-2 overflow-hidden">
+                    <div className="flex-1 bg-gray-200 rounded-full h-1.5 overflow-hidden">
                       <div
                         className={`h-full ${getPasswordStrengthColor()} transition-all duration-300`}
                         style={{ width: `${(passwordStrength / 5) * 100}%` }}
@@ -339,7 +358,7 @@ function Register() {
             {/* Confirm Password */}
             <div>
               <label className="block mb-2 text-gray-700 font-semibold text-sm">
-                Confirm Password
+                Confirm Password *
               </label>
               <div className="relative">
                 <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
@@ -349,7 +368,7 @@ function Register() {
                   value={formData.password2}
                   onChange={handleChange}
                   required
-                  className="w-full pl-10 pr-12 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                  className="w-full pl-10 pr-12 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
                   placeholder="••••••••"
                 />
                 <button
@@ -368,41 +387,44 @@ function Register() {
               )}
             </div>
 
-            {/* Submit Button */}
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white py-4 rounded-lg font-semibold text-lg disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
-            >
-              {loading ? (
-                <span className="flex items-center justify-center gap-2">
-                  <div className="animate-spin rounded-full h-5 w-5 border-2 border-white border-t-transparent"></div>
-                  Creating Account...
-                </span>
-              ) : (
-                <span className="flex items-center justify-center gap-2">
-                  <UserPlus className="w-5 h-5" />
-                  {user?.role === 'admin' ? 'Create User Account' : 'Create My Account'}
-                </span>
-              )}
-            </button>
-          </form>
-
-          {/* Footer Links */}
-          {!user && (
-            <div className="mt-6 text-center">
-              <p className="text-gray-600">
-                Already have an account?{' '}
-                <Link to="/login" className="text-blue-600 hover:text-blue-700 font-semibold hover:underline">
-                  Sign in here
-                </Link>
-              </p>
+            {/* Action Buttons */}
+            <div className="flex gap-3 pt-4">
+              <button
+                type="submit"
+                disabled={loading || success}
+                className="flex-1 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white py-3 rounded-lg font-semibold disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
+              >
+                {loading ? (
+                  <span className="flex items-center justify-center gap-2">
+                    <div className="animate-spin rounded-full h-5 w-5 border-2 border-white border-t-transparent"></div>
+                    Creating...
+                  </span>
+                ) : success ? (
+                  <span className="flex items-center justify-center gap-2">
+                    <CheckCircle className="w-5 h-5" />
+                    Created!
+                  </span>
+                ) : (
+                  <span className="flex items-center justify-center gap-2">
+                    <UserPlus className="w-5 h-5" />
+                    Create Account
+                  </span>
+                )}
+              </button>
+              <button
+                type="button"
+                onClick={handleClose}
+                disabled={loading}
+                className="px-6 py-3 border-2 border-gray-300 text-gray-700 rounded-lg font-semibold hover:bg-gray-50 transition-all disabled:opacity-50"
+              >
+                Cancel
+              </button>
             </div>
-          )}
+          </form>
         </div>
       </div>
     </div>
   );
 }
 
-export default Register;
+export default RegisterModal;
