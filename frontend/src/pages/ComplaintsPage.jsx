@@ -1,29 +1,26 @@
 import React, { useState, useEffect } from 'react';
-import { Search, Eye, Edit2, UserPlus, X, Download } from 'lucide-react';
+import { Search, Eye, CheckCircle, XCircle, Clock, AlertCircle } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import api from '../api/axios';
-import Footer from '../components/Footer.jsx'
-import Header from '../components/Header.jsx'
+import Footer from '../components/Footer.jsx';
+import Header from '../components/Header.jsx';
 
-const ComplaintsPage = ({ onNavigate }) => {
+const ComplaintsPage = () => {
   const [complaints, setComplaints] = useState([]);
   const [staffers, setStaffers] = useState([]);
   const [buildings, setBuildings] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [showDetailModal, setShowDetailModal] = useState(false);
-  const [showAssignModal, setShowAssignModal] = useState(false);
-  const [showStatusModal, setShowStatusModal] = useState(false);
   const [selectedComplaint, setSelectedComplaint] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [selectedStaff, setSelectedStaff] = useState('');
-  const [selectedStatus, setSelectedStatus] = useState('');
-  const [completionNotes, setCompletionNotes] = useState('');
   const [userRole, setUserRole] = useState(null);
+  const [activeTab, setActiveTab] = useState('approval');
   const [updateData, setUpdateData] = useState({
     status: '',
     notes: '',
     image: null,
-    assigned_to: ''
+    assigned_to: '',
+    rejection_reason: ''
   });
 
   const getImageUrl = (imagePath) => {
@@ -73,12 +70,7 @@ const ComplaintsPage = ({ onNavigate }) => {
 
   const fetchComplaints = async () => {
     try {
-      const response = await api.get('/maintenance/requests/', {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('access_token')}`
-        }
-      });
-      
+      const response = await api.get('/maintenance/requests/');
       const data = response.data;
       let complaintsArray = [];
       
@@ -97,12 +89,7 @@ const ComplaintsPage = ({ onNavigate }) => {
 
   const fetchStaffers = async () => {
     try {
-      const response = await api.get('/accounts/staff/all/', {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('access_token')}`
-        }
-      });
-
+      const response = await api.get('/accounts/staff/all/');
       const staffArray = Array.isArray(response.data) ? response.data : [];
       setStaffers(staffArray);
     } catch (error) {
@@ -113,12 +100,7 @@ const ComplaintsPage = ({ onNavigate }) => {
 
   const fetchBuildings = async () => {
     try {
-      const response = await api.get('/location/buildings/', {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('access_token')}`
-        }
-      });
-
+      const response = await api.get('/location/buildings/');
       const buildingsData = Array.isArray(response.data) 
         ? response.data 
         : response.data.results || [];
@@ -129,11 +111,43 @@ const ComplaintsPage = ({ onNavigate }) => {
     }
   };
 
-  const filteredComplaints = complaints.filter(complaint =>
-    (complaint.description?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
-    (complaint.requester_name?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
-    (complaint.building?.name?.toLowerCase() || '').includes(searchTerm.toLowerCase())
-  );
+  // Filter requests based on active tab
+  const getFilteredRequests = () => {
+    let filtered = complaints;
+
+    // Tab-based filtering
+    if (activeTab === 'approval') {
+      filtered = complaints.filter(req => req.status === 'pending');
+    } else if (activeTab === 'approved') {
+      filtered = complaints.filter(req => req.status === 'approved');
+    } else if (activeTab === 'rejected') {
+      filtered = complaints.filter(req => req.status === 'rejected');
+    } else if (activeTab === 'in_progress') {
+      filtered = complaints.filter(req => req.status === 'in_progress');
+    } else if (activeTab === 'completed') {
+      filtered = complaints.filter(req => req.status === 'completed');
+    }
+
+    // Search filter
+    if (searchTerm) {
+      filtered = filtered.filter(complaint =>
+        (complaint.description?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
+        (complaint.requester_name?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
+        (complaint.building?.name?.toLowerCase() || '').includes(searchTerm.toLowerCase())
+      );
+    }
+
+    return filtered;
+  };
+
+  // Get tab counts
+  const getTabCounts = () => ({
+    approval: complaints.filter(req => req.status === 'pending').length,
+    approved: complaints.filter(req => req.status === 'approved').length,
+    rejected: complaints.filter(req => req.status === 'rejected').length,
+    in_progress: complaints.filter(req => req.status === 'in_progress').length,
+    completed: complaints.filter(req => req.status === 'completed').length,
+  });
 
   const getBuildingName = (building) => {
     if (!building) return 'N/A';
@@ -170,9 +184,10 @@ const ComplaintsPage = ({ onNavigate }) => {
   const getStatusColor = (status) => {
     switch(status) {
       case 'pending': return 'bg-yellow-100 text-yellow-800';
+      case 'approved': return 'bg-green-100 text-green-800';
+      case 'rejected': return 'bg-red-100 text-red-800';
       case 'in_progress': return 'bg-blue-100 text-blue-800';
-      case 'completed': return 'bg-green-100 text-green-800';
-      case 'on_hold': return 'bg-orange-100 text-orange-800';
+      case 'completed': return 'bg-gray-100 text-gray-800';
       default: return 'bg-gray-100 text-gray-800';
     }
   };
@@ -188,6 +203,54 @@ const ComplaintsPage = ({ onNavigate }) => {
 
   const formatStatusText = (status) => {
     return status ? status.replace(/_/g, ' ').toUpperCase() : 'NONE';
+  };
+
+  const handleApproveRequest = async (request) => {
+    if (!window.confirm('Are you sure you want to approve this request?')) return;
+    
+    try {
+      await api.patch(`/maintenance/requests/${request.id}/`, {
+        status: 'approved'
+      });
+      
+      alert('Request approved successfully!');
+      await fetchComplaints();
+    } catch (error) {
+      console.error('Approve error:', error);
+      alert(`Failed to approve request: ${error.response?.data?.detail || error.message}`);
+    }
+  };
+
+  const handleRejectRequest = async (request) => {
+    console.log('Reject button clicked for request:', request.id);
+    
+    const reason = window.prompt('Please provide a reason for rejection:');
+    console.log('Rejection reason entered:', reason);
+    
+    if (!reason || reason.trim() === '') {
+      alert('Rejection reason is required.');
+      return;
+    }
+    
+    try {
+      console.log('Sending PATCH request to:', `/maintenance/requests/${request.id}/`);
+      console.log('With data:', { status: 'rejected', rejection_reason: reason });
+      
+      const response = await api.patch(`/maintenance/requests/${request.id}/`, {
+        status: 'rejected',
+        rejection_reason: reason
+      });
+      
+      console.log('Reject response SUCCESS:', response.data);
+      alert('Request rejected successfully!');
+      await fetchComplaints();
+    } catch (error) {
+      console.error('Reject error FULL:', error);
+      console.error('Error response:', error.response);
+      console.error('Error data:', error.response?.data);
+      console.error('Error status:', error.response?.status);
+      alert(`Failed to reject request: ${error.response?.data?.error || error.response?.data?.detail || error.message}`);
+    }
   };
 
   const handleUpdateRequest = async () => {
@@ -244,7 +307,8 @@ const ComplaintsPage = ({ onNavigate }) => {
       status: complaint.status,
       notes: complaint.completion_notes || '',
       image: null,
-      assigned_to: assignedToId || ''
+      assigned_to: assignedToId || '',
+      rejection_reason: complaint.rejection_reason || ''
     });
     setShowDetailModal(true);
   };
@@ -252,42 +316,141 @@ const ComplaintsPage = ({ onNavigate }) => {
   const closeDetailModal = () => {
     setShowDetailModal(false);
     setSelectedComplaint(null);
-    setUpdateData({ status: '', notes: '', image: null, assigned_to: '' });
+    setUpdateData({ status: '', notes: '', image: null, assigned_to: '', rejection_reason: '' });
   };
+
+  const filteredRequests = getFilteredRequests();
+  const tabCounts = getTabCounts();
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-blue-600 mx-auto"></div>
+          <p className="mt-4 text-gray-600 text-xl">Loading maintenance requests...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <>
-    <Header/>
-    <div className="p-6 max-w-7xl min-h-screen flex flex-col mx-auto height: 100vh;">
-      <div className="mb-6">
-        <button className="text-blue-600 hover:text-blue-800 mb-4 flex items-center gap-1">
-          <Link to={`/management/`}>
-              ← Back to Management Overview
-          </Link>
-        </button>
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900">Maintenance Requests</h1>
-          <p className="text-gray-600 mt-1">Monitor and manage maintenance requests</p>
-        </div>
-      </div>
-
-      <div className="bg-white rounded-lg shadow-md">
-        <div className="p-4 border-b">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-            <input
-              type="text"
-              placeholder="Search complaints..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
-            />
+      <Header />
+      <div className="p-6 max-w-7xl min-h-screen flex flex-col mx-auto">
+        <div className="mb-6">
+          <button className="text-blue-600 hover:text-blue-800 mb-4 flex items-center gap-1">
+            <Link to="/management/">← Back to Management Overview</Link>
+          </button>
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900">Maintenance Requests</h1>
+            <p className="text-gray-600 mt-1">Review, approve, and manage maintenance requests</p>
           </div>
         </div>
 
-        {loading ? (
-          <div className="p-8 text-center text-gray-500">Loading maintenance requests...</div>
-        ) : (
+        {/* Tabs */}
+        <div className="mb-6 border-b border-gray-200">
+          <nav className="flex space-x-8 overflow-x-auto">
+            <button
+              onClick={() => setActiveTab('approval')}
+              className={`pb-4 px-1 border-b-2 font-medium text-sm transition-colors whitespace-nowrap ${
+                activeTab === 'approval'
+                  ? 'border-orange-500 text-orange-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              }`}
+            >
+              <div className="flex items-center gap-2">
+                <AlertCircle className="w-5 h-5" />
+                <span>Pending Approval</span>
+                <span className="bg-orange-100 text-orange-800 px-2 py-0.5 rounded-full text-xs">
+                  {tabCounts.approval}
+                </span>
+              </div>
+            </button>
+
+            <button
+              onClick={() => setActiveTab('approved')}
+              className={`pb-4 px-1 border-b-2 font-medium text-sm transition-colors whitespace-nowrap ${
+                activeTab === 'approved'
+                  ? 'border-green-500 text-green-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              }`}
+            >
+              <div className="flex items-center gap-2">
+                <CheckCircle className="w-5 h-5" />
+                <span>Approved</span>
+                <span className="bg-green-100 text-green-800 px-2 py-0.5 rounded-full text-xs">
+                  {tabCounts.approved}
+                </span>
+              </div>
+            </button>
+
+            <button
+              onClick={() => setActiveTab('rejected')}
+              className={`pb-4 px-1 border-b-2 font-medium text-sm transition-colors whitespace-nowrap ${
+                activeTab === 'rejected'
+                  ? 'border-red-500 text-red-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              }`}
+            >
+              <div className="flex items-center gap-2">
+                <XCircle className="w-5 h-5" />
+                <span>Rejected</span>
+                <span className="bg-red-100 text-red-800 px-2 py-0.5 rounded-full text-xs">
+                  {tabCounts.rejected}
+                </span>
+              </div>
+            </button>
+
+            <button
+              onClick={() => setActiveTab('in_progress')}
+              className={`pb-4 px-1 border-b-2 font-medium text-sm transition-colors whitespace-nowrap ${
+                activeTab === 'in_progress'
+                  ? 'border-blue-500 text-blue-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              }`}
+            >
+              <div className="flex items-center gap-2">
+                <Clock className="w-5 h-5" />
+                <span>In Progress</span>
+                <span className="bg-blue-100 text-blue-800 px-2 py-0.5 rounded-full text-xs">
+                  {tabCounts.in_progress}
+                </span>
+              </div>
+            </button>
+
+            <button
+              onClick={() => setActiveTab('completed')}
+              className={`pb-4 px-1 border-b-2 font-medium text-sm transition-colors whitespace-nowrap ${
+                activeTab === 'completed'
+                  ? 'border-gray-500 text-gray-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              }`}
+            >
+              <div className="flex items-center gap-2">
+                <CheckCircle className="w-5 h-5" />
+                <span>Completed</span>
+                <span className="bg-gray-100 text-gray-800 px-2 py-0.5 rounded-full text-xs">
+                  {tabCounts.completed}
+                </span>
+              </div>
+            </button>
+          </nav>
+        </div>
+
+        <div className="bg-white rounded-lg shadow-md">
+          <div className="p-4 border-b">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+              <input
+                type="text"
+                placeholder="Search requests..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+              />
+            </div>
+          </div>
+
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead className="bg-gray-50">
@@ -303,14 +466,14 @@ const ComplaintsPage = ({ onNavigate }) => {
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {filteredComplaints.length === 0 ? (
+                {filteredRequests.length === 0 ? (
                   <tr>
                     <td colSpan="8" className="px-6 py-8 text-center text-gray-500">
-                      No maintenance requests found.
+                      No maintenance requests found in this category.
                     </td>
                   </tr>
                 ) : (
-                  filteredComplaints.map((complaint) => (
+                  filteredRequests.map((complaint) => (
                     <tr key={complaint.id} className="hover:bg-gray-50">
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                         #{complaint.id}
@@ -349,13 +512,31 @@ const ComplaintsPage = ({ onNavigate }) => {
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
                         {new Date(complaint.created_at).toLocaleDateString()}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <button
-                          onClick={() => openDetailModal(complaint)}
-                          className="text-blue-600 hover:text-blue-800 font-medium"
-                        >
-                          View Details
-                        </button>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm">
+                        <div className="flex items-center gap-2">
+                          {activeTab === 'approval' && (
+                            <>
+                              <button
+                                onClick={() => handleApproveRequest(complaint)}
+                                className="text-green-600 hover:text-green-800 font-medium"
+                              >
+                                Approve
+                              </button>
+                              <button
+                                onClick={() => handleRejectRequest(complaint)}
+                                className="text-red-600 hover:text-red-800 font-medium"
+                              >
+                                Reject
+                              </button>
+                            </>
+                          )}
+                          <button
+                            onClick={() => openDetailModal(complaint)}
+                            className="text-blue-600 hover:text-blue-800 font-medium"
+                          >
+                            View Details
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   ))
@@ -363,104 +544,193 @@ const ComplaintsPage = ({ onNavigate }) => {
               </tbody>
             </table>
           </div>
-        )}
-      </div>
+        </div>
 
-      {/* Detail Modal */}
-      {showDetailModal && selectedComplaint && (
-        <div 
-          className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50 p-4"
-          onClick={closeDetailModal}
-        >
+        {/* Detail Modal */}
+        {showDetailModal && selectedComplaint && (
           <div 
-            className="bg-white rounded-lg w-full max-w-3xl max-h-[90vh] overflow-y-auto"
-            onClick={(e) => e.stopPropagation()}
+            className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50 p-4"
+            onClick={closeDetailModal}
           >
-            {/* Header */}
-            <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex justify-between items-center">
-              <div>
-                <h2 className="text-2xl font-bold text-gray-800">
-                  Request #{selectedComplaint.id}
-                </h2>
-                <span className={`inline-block mt-1 px-3 py-1 rounded-full text-xs font-semibold ${getStatusColor(selectedComplaint.status)}`}>
-                  {formatStatusText(selectedComplaint.status)}
-                </span>
+            <div 
+              className="bg-white rounded-lg w-full max-w-3xl max-h-[90vh] overflow-y-auto"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex justify-between items-center">
+                <div>
+                  <h2 className="text-2xl font-bold text-gray-800">
+                    Request #{selectedComplaint.id}
+                  </h2>
+                  <span className={`inline-block mt-1 px-3 py-1 rounded-full text-xs font-semibold ${getStatusColor(selectedComplaint.status)}`}>
+                    {formatStatusText(selectedComplaint.status)}
+                  </span>
+                </div>
+                <button
+                  onClick={closeDetailModal}
+                  className="text-gray-400 hover:text-gray-600 text-2xl font-bold"
+                >
+                  ×
+                </button>
               </div>
-              <button
-                onClick={closeDetailModal}
-                className="text-gray-400 hover:text-gray-600 text-2xl font-bold"
-              >
-                ×
-              </button>
-            </div>
 
-            {/* Body */}
-            <div className="p-6 space-y-6">
-              {/* Request Information */}
-              <div className="space-y-4">
-                <h3 className="text-lg font-semibold text-gray-800 border-b pb-2">Request Information</h3>
-                
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700">Requester</label>
-                    <p className="mt-1 text-gray-900">{selectedComplaint.requester_name || 'N/A'}</p>
+              <div className="p-6 space-y-6">
+                <div className="space-y-4">
+                  <h3 className="text-lg font-semibold text-gray-800 border-b pb-2">Request Information</h3>
+                  
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700">Requester</label>
+                      <p className="mt-1 text-gray-900">{selectedComplaint.requester_name || 'N/A'}</p>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700">Role</label>
+                      {selectedComplaint.role ? (
+                        <span className={`inline-block mt-1 px-2 py-1 text-xs font-medium rounded-full ${getRoleBadgeColor(selectedComplaint.role)}`}>
+                          {selectedComplaint.role}
+                        </span>
+                      ) : (
+                        <p className="mt-1 text-gray-900">N/A</p>
+                      )}
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700">Building</label>
+                      <p className="mt-1 text-gray-900">{getBuildingName(selectedComplaint.building)}</p>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700">Floor</label>
+                      <p className="mt-1 text-gray-900">{selectedComplaint.floor?.number || selectedComplaint.floor || 'N/A'}</p>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700">Room</label>
+                      <p className="mt-1 text-gray-900">{selectedComplaint.room?.name || selectedComplaint.room || 'N/A'}</p>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700">Date Submitted</label>
+                      <p className="mt-1 text-gray-900">{new Date(selectedComplaint.created_at).toLocaleString()}</p>
+                    </div>
                   </div>
+
                   <div>
-                    <label className="block text-sm font-medium text-gray-700">Role</label>
-                    {selectedComplaint.role ? (
-                      <span className={`inline-block mt-1 px-2 py-1 text-xs font-medium rounded-full ${getRoleBadgeColor(selectedComplaint.role)}`}>
-                        {selectedComplaint.role}
-                      </span>
-                    ) : (
-                      <p className="mt-1 text-gray-900">N/A</p>
+                    <label className="block text-sm font-medium text-gray-700">Description</label>
+                    <p className="mt-1 text-gray-900 bg-gray-50 p-3 rounded">{selectedComplaint.description || 'N/A'}</p>
+                  </div>
+
+                  {selectedComplaint.rejection_reason && (
+                    <div className="bg-red-50 p-4 rounded border border-red-200">
+                      <label className="block text-sm font-medium text-red-700">Rejection Reason</label>
+                      <p className="mt-1 text-red-900">{selectedComplaint.rejection_reason}</p>
+                    </div>
+                  )}
+
+                  {selectedComplaint.issue_photo && (
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Issue Photo</label>
+                      <img 
+                        src={getImageUrl(selectedComplaint.issue_photo)}
+                        alt="Issue" 
+                        className="w-full max-h-64 object-contain rounded border"
+                        onError={(e) => {
+                          e.target.style.display = 'none';
+                        }}
+                      />
+                    </div>
+                  )}
+                </div>
+
+                <div className="space-y-4 border-t pt-6">
+                  <h3 className="text-lg font-semibold text-gray-800 border-b pb-2">Update Request</h3>
+                  
+                  {userRole === 'admin' && (
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Assign To
+                      </label>
+                      <select
+                        value={updateData.assigned_to || ''}
+                        onChange={(e) => setUpdateData({ ...updateData, assigned_to: e.target.value })}
+                        className="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:border-blue-500"
+                      >
+                        <option value="">Unassigned</option>
+                        {staffers.map(staff => {
+                          const userId = staff.user?.id || staff.user;
+                          const username = staff.user?.username || staff.username || 'Unknown';
+                          const firstName = staff.user?.first_name || staff.first_name || '';
+                          const lastName = staff.user?.last_name || staff.last_name || '';
+                          
+                          const displayName = firstName && lastName 
+                            ? `${firstName} ${lastName} (@${username})`
+                            : username;
+                          
+                          return (
+                            <option key={staff.id} value={userId}>
+                              {displayName} - {staff.role}
+                            </option>
+                          );
+                        })}
+                      </select>
+                    </div>
+                  )}
+                  
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Status</label>
+                    <select
+                      value={updateData.status}
+                      onChange={(e) => setUpdateData({ ...updateData, status: e.target.value })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:border-blue-500"
+                    >
+                      <option value="pending">Pending</option>
+                      <option value="approved">Approved</option>
+                      <option value="rejected">Rejected</option>
+                      <option value="in_progress">In Progress</option>
+                      <option value="completed">Completed</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Notes</label>
+                    <textarea
+                      rows="4"
+                      value={updateData.notes}
+                      onChange={(e) => setUpdateData({ ...updateData, notes: e.target.value })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:border-blue-500 resize-y"
+                      placeholder="Add notes about this request..."
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Upload Image (Optional)
+                    </label>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => setUpdateData({ ...updateData, image: e.target.files[0] })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:border-blue-500"
+                    />
+                    {updateData.image && (
+                      <p className="text-sm text-gray-600 mt-1">Selected: {updateData.image.name}</p>
                     )}
                   </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700">Building</label>
-                    <p className="mt-1 text-gray-900">{getBuildingName(selectedComplaint.building)}</p>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700">Floor</label>
-                    <p className="mt-1 text-gray-900">{selectedComplaint.floor?.number || selectedComplaint.floor || 'N/A'}</p>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700">Room</label>
-                    <p className="mt-1 text-gray-900">{selectedComplaint.room?.name || selectedComplaint.room || 'N/A'}</p>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700">Date Submitted</label>
-                    <p className="mt-1 text-gray-900">{new Date(selectedComplaint.created_at).toLocaleString()}</p>
-                  </div>
                 </div>
 
-                {selectedComplaint.section && (
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700">Section</label>
-                    <p className="mt-1 text-gray-900">{selectedComplaint.section}</p>
+                {selectedComplaint.completion_notes && (
+                  <div className="border-t pt-6">
+                    <h3 className="text-lg font-semibold text-gray-800 border-b pb-2 mb-4">Completion Information</h3>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700">Completion Notes</label>
+                      <p className="mt-1 text-gray-900 bg-gray-50 p-3 rounded">{selectedComplaint.completion_notes}</p>
+                    </div>
                   </div>
                 )}
 
-                {selectedComplaint.student_id && (
+                {selectedComplaint.completion_photo && (
                   <div>
-                    <label className="block text-sm font-medium text-gray-700">Student ID</label>
-                    <p className="mt-1 text-gray-900">{selectedComplaint.student_id}</p>
-                  </div>
-                )}
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">Description</label>
-                  <p className="mt-1 text-gray-900 bg-gray-50 p-3 rounded">{selectedComplaint.description || 'N/A'}</p>
-                </div>
-
-                {selectedComplaint.issue_photo && (
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Issue Photo</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Completion Photo</label>
                     <img 
-                      src={getImageUrl(selectedComplaint.issue_photo)}
-                      alt="Issue" 
+                      src={getImageUrl(selectedComplaint.completion_photo)}
+                      alt="Completion" 
                       className="w-full max-h-64 object-contain rounded border"
                       onError={(e) => {
-                        console.error('Image failed to load:', getImageUrl(selectedComplaint.issue_photo));
                         e.target.style.display = 'none';
                       }}
                     />
@@ -468,134 +738,25 @@ const ComplaintsPage = ({ onNavigate }) => {
                 )}
               </div>
 
-              {/* Update Section */}
-              <div className="space-y-4 border-t pt-6">
-                <h3 className="text-lg font-semibold text-gray-800 border-b pb-2">Update Request</h3>
-                
-                {/* Staff Assignment Dropdown (Admin Only) */}
-                {userRole === 'admin' && (
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Assign To (Admin Only)
-                    </label>
-                    <select
-                      value={updateData.assigned_to || ''}
-                      onChange={(e) => setUpdateData({ ...updateData, assigned_to: e.target.value })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:border-blue-500"
-                    >
-                      <option value="">Unassigned</option>
-                      {staffers.map(staff => {
-                        const userId = staff.user?.id || staff.user;
-                        const username = staff.user?.username || staff.username || 'Unknown';
-                        const firstName = staff.user?.first_name || staff.first_name || '';
-                        const lastName = staff.user?.last_name || staff.last_name || '';
-                        
-                        const displayName = firstName && lastName 
-                          ? `${firstName} ${lastName} (@${username})`
-                          : username;
-                        
-                        return (
-                          <option key={staff.id} value={userId}>
-                            {displayName} - {staff.role}
-                          </option>
-                        );
-                      })}
-                    </select>
-                    {staffers.length === 0 && (
-                      <p className="text-sm text-gray-500 mt-1">No staff members available</p>
-                    )}
-                  </div>
-                )}
-                
-                {/* Status dropdown */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Status</label>
-                  <select
-                    value={updateData.status}
-                    onChange={(e) => setUpdateData({ ...updateData, status: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:border-blue-500"
-                  >
-                    <option value="pending">Pending</option>
-                    <option value="in_progress">In Progress</option>
-                    <option value="on_hold">On Hold</option>
-                    <option value="completed">Completed</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Notes</label>
-                  <textarea
-                    rows="4"
-                    value={updateData.notes}
-                    onChange={(e) => setUpdateData({ ...updateData, notes: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:border-blue-500 resize-y"
-                    placeholder="Add notes about this request..."
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Upload Image (Optional)
-                  </label>
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={(e) => setUpdateData({ ...updateData, image: e.target.files[0] })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:border-blue-500"
-                  />
-                  {updateData.image && (
-                    <p className="text-sm text-gray-600 mt-1">Selected: {updateData.image.name}</p>
-                  )}
-                </div>
+              <div className="sticky bottom-0 bg-gray-50 px-6 py-4 flex gap-3 border-t">
+                <button 
+                  className="flex-1 bg-blue-500 hover:bg-blue-600 text-white py-2 px-4 rounded transition-colors font-medium"
+                  onClick={handleUpdateRequest}
+                >
+                  Update Request
+                </button>
+                <button 
+                  className="flex-1 bg-gray-500 hover:bg-gray-600 text-white py-2 px-4 rounded transition-colors font-medium"
+                  onClick={closeDetailModal}
+                >
+                  Cancel
+                </button>
               </div>
-
-              {/* Previous completion info */}
-              {selectedComplaint.completion_notes && (
-                <div className="border-t pt-6">
-                  <h3 className="text-lg font-semibold text-gray-800 border-b pb-2 mb-4">Completion Information</h3>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700">Completion Notes</label>
-                    <p className="mt-1 text-gray-900 bg-gray-50 p-3 rounded">{selectedComplaint.completion_notes}</p>
-                  </div>
-                </div>
-              )}
-
-              {selectedComplaint.completion_photo && (
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Completion Photo</label>
-                  <img 
-                    src={getImageUrl(selectedComplaint.completion_photo)}
-                    alt="Completion" 
-                    className="w-full max-h-64 object-contain rounded border"
-                    onError={(e) => {
-                      console.error('Image failed to load:', getImageUrl(selectedComplaint.completion_photo));
-                      e.target.style.display = 'none';
-                    }}
-                  />
-                </div>
-              )}
-            </div>
-
-            {/* Footer Actions */}
-            <div className="sticky bottom-0 bg-gray-50 px-6 py-4 flex gap-3 border-t">
-              <button 
-                className="flex-1 bg-blue-500 hover:bg-blue-600 text-white py-2 px-4 rounded transition-colors font-medium"
-                onClick={handleUpdateRequest}
-              >
-                Update Request
-              </button>
-              <button 
-                className="flex-1 bg-gray-500 hover:bg-gray-600 text-white py-2 px-4 rounded transition-colors font-medium"
-                onClick={closeDetailModal}
-              >
-                Cancel
-              </button>
             </div>
           </div>
-        </div>
-      )}
-    </div>  
-    <Footer/>
+        )}
+      </div>
+      <Footer />
     </>
   );
 };

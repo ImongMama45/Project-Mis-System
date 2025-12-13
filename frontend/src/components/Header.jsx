@@ -102,7 +102,7 @@ function Header({ showSearch = false }) {
                             className="w-full text-left px-4 py-2 hover:bg-gray-50 transition-colors text-gray-700 flex items-center gap-2"
                           >
                             <span>➕</span>
-                            Register New User
+                            Register New Staff
                           </button>
                         )}
 

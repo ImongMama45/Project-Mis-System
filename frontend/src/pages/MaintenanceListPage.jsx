@@ -1,11 +1,9 @@
-// MaintenanceList
-
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import api from '../api/axios.js';
-import Footer from '../components/Footer.jsx'
+import { ClipboardList, CheckCircle2, Clock, AlertCircle } from 'lucide-react';
+import api from '../api/axios';
+import Footer from '../components/Footer.jsx';
 import Header from '../components/Header.jsx';
-import { ClipboardList, CheckCircle2, Clock, XCircle } from 'lucide-react';
+
 
 function MaintenanceList() {
   const [allRequests, setAllRequests] = useState([]);
@@ -16,16 +14,12 @@ function MaintenanceList() {
   const [updateData, setUpdateData] = useState({
     status: '',
     notes: '',
-    image: null,
-    assigned_to: ''
+    image: null
   });
   const [userRole, setUserRole] = useState(null);
   const [userId, setUserId] = useState(null);
-  const [staffList, setStaffList] = useState([]);
-  const [activeTab, setActiveTab] = useState('all'); // 'all', 'pending', 'assigned'
-  const navigate = useNavigate();
+  const [activeTab, setActiveTab] = useState('available');
 
-  // Helper function to get the full image URL
   const getImageUrl = (imagePath) => {
     if (!imagePath || imagePath.trim() === '') return null;
     
@@ -40,21 +34,12 @@ function MaintenanceList() {
     initializeData();
   }, []);
 
-  // Initialize: fetch user profile first, then requests
   const initializeData = async () => {
     try {
       setLoading(true);
       const profile = await fetchUserProfile();
       setUserRole(profile.role);
       setUserId(profile.userId);
-      
-      // Fetch staff list if user is admin
-      if (profile.role === 'admin') {
-        await fetchStaffList();
-        setActiveTab('all'); // Admin default to all
-      } else {
-        setActiveTab('pending'); // Staff default to pending
-      }
       
       await fetchRequests();
     } catch (error) {
@@ -65,19 +50,6 @@ function MaintenanceList() {
     }
   };
 
-  // Fetch list of all staff members (admin only)
-  const fetchStaffList = async () => {
-    try {
-      const response = await api.get('/accounts/staff/all/');
-      const staffArray = Array.isArray(response.data) ? response.data : [];
-      setStaffList(staffArray);
-    } catch (error) {
-      console.error('Error fetching staff list:', error);
-      setStaffList([]);
-    }
-  };
-
-  // Fetch current user's profile
   const fetchUserProfile = async () => {
     try {
       const response = await api.get('/accounts/staffprofile/');
@@ -92,7 +64,6 @@ function MaintenanceList() {
     }
   };
 
-  // Fetch ALL maintenance requests (no filtering)
   const fetchRequests = async () => {
     try {
       const response = await api.get('/maintenance/requests/');
@@ -110,7 +81,12 @@ function MaintenanceList() {
         requestsArray = [];
       }
 
-      setAllRequests(requestsArray);
+      // Filter to only show approved or in-progress/completed requests
+      const filteredRequests = requestsArray.filter(req => 
+        req.status !== 'pending' && req.status !== 'rejected'
+      );
+
+      setAllRequests(filteredRequests);
       setError(null);
       
     } catch (error) {
@@ -128,28 +104,26 @@ function MaintenanceList() {
     }
   };
 
-  // Filter requests based on active tab
   const getFilteredRequests = () => {
-    if (userRole === 'admin') {
-      // Admin sees everything in "all" tab
-      if (activeTab === 'all') return allRequests;
-      if (activeTab === 'pending') return allRequests.filter(req => req.status === 'pending');
-      if (activeTab === 'assigned') return allRequests.filter(req => req.assigned_to !== null);
-    } else {
-      // Staff filtering
-      if (activeTab === 'pending') {
-        // Show unassigned pending requests
-        return allRequests.filter(req => req.status === 'pending' && !req.assigned_to);
-      }
-      if (activeTab === 'assigned') {
-        // Show requests assigned to this staff member
-        return allRequests.filter(req => {
-          const assignedToId = typeof req.assigned_to === 'object' 
-            ? req.assigned_to?.id 
-            : req.assigned_to;
-          return assignedToId === userId;
-        });
-      }
+    if (activeTab === 'available') {
+      // Show approved requests that are unassigned
+      return allRequests.filter(req => req.status === 'approved' && !req.assigned_to);
+    } else if (activeTab === 'assigned') {
+      // Show requests assigned to this staff member
+      return allRequests.filter(req => {
+        const assignedToId = typeof req.assigned_to === 'object' 
+          ? req.assigned_to?.id 
+          : req.assigned_to;
+        return assignedToId === userId;
+      });
+    } else if (activeTab === 'completed') {
+      // Show completed requests by this staff member
+      return allRequests.filter(req => {
+        const assignedToId = typeof req.assigned_to === 'object' 
+          ? req.assigned_to?.id 
+          : req.assigned_to;
+        return req.status === 'completed' && assignedToId === userId;
+      });
     }
     return allRequests;
   };
@@ -157,15 +131,10 @@ function MaintenanceList() {
   const openDetailModal = (request) => {
     setSelectedRequest(request);
     
-    const assignedToId = typeof request.assigned_to === 'object' 
-      ? request.assigned_to?.id 
-      : request.assigned_to;
-    
     setUpdateData({
       status: request.status,
       notes: request.completion_notes || '',
-      image: null,
-      assigned_to: assignedToId || ''
+      image: null
     });
     setShowDetailModal(true);
   };
@@ -173,7 +142,7 @@ function MaintenanceList() {
   const closeDetailModal = () => {
     setShowDetailModal(false);
     setSelectedRequest(null);
-    setUpdateData({ status: '', notes: '', image: null, assigned_to: '' });
+    setUpdateData({ status: '', notes: '', image: null });
   };
 
   const handleUpdateRequest = async () => {
@@ -201,11 +170,6 @@ function MaintenanceList() {
         if (updateData.image) {
           formData.append('image', updateData.image);
         }
-      }
-      
-      // Add assigned_to if admin changed it
-      if (userRole === 'admin' && updateData.assigned_to) {
-        formData.append('assigned_to', updateData.assigned_to);
       }
       
       await api.post(endpoint, formData);
@@ -240,11 +204,10 @@ function MaintenanceList() {
     if (!window.confirm('Are you sure you want to cancel this assignment?')) return;
     
     try {
-      const formData = new FormData();
-      formData.append('status', 'pending');
-      formData.append('assigned_to', '');
-      
-      await api.post(`/maintenance/requests/${request.id}/update-status/`, formData);
+      await api.patch(`/maintenance/requests/${request.id}/`, {
+        status: 'approved',
+        assigned_to: ''
+      });
       alert('Assignment cancelled successfully!');
       await fetchRequests();
     } catch (error) {
@@ -255,10 +218,9 @@ function MaintenanceList() {
 
   const getStatusBadgeClass = (status) => {
     const badges = {
-      pending: 'bg-yellow-100 text-yellow-800',
+      approved: 'bg-green-100 text-green-800',
       in_progress: 'bg-blue-100 text-blue-800',
-      completed: 'bg-green-100 text-green-800',
-      on_hold: 'bg-orange-100 text-orange-800',
+      completed: 'bg-gray-100 text-gray-800'
     };
     return badges[status] || 'bg-gray-100 text-gray-800';
   };
@@ -267,25 +229,22 @@ function MaintenanceList() {
     return status.replace(/_/g, ' ').toUpperCase();
   };
 
-  // Get tab counts
   const getTabCounts = () => {
-    if (userRole === 'admin') {
-      return {
-        all: allRequests.length,
-        pending: allRequests.filter(req => req.status === 'pending').length,
-        assigned: allRequests.filter(req => req.assigned_to !== null).length
-      };
-    } else {
-      return {
-        pending: allRequests.filter(req => req.status === 'pending' && !req.assigned_to).length,
-        assigned: allRequests.filter(req => {
-          const assignedToId = typeof req.assigned_to === 'object' 
-            ? req.assigned_to?.id 
-            : req.assigned_to;
-          return assignedToId === userId;
-        }).length
-      };
-    }
+    return {
+      available: allRequests.filter(req => req.status === 'approved' && !req.assigned_to).length,
+      assigned: allRequests.filter(req => {
+        const assignedToId = typeof req.assigned_to === 'object' 
+          ? req.assigned_to?.id 
+          : req.assigned_to;
+        return assignedToId === userId && req.status !== 'completed';
+      }).length,
+      completed: allRequests.filter(req => {
+        const assignedToId = typeof req.assigned_to === 'object' 
+          ? req.assigned_to?.id 
+          : req.assigned_to;
+        return req.status === 'completed' && assignedToId === userId;
+      }).length
+    };
   };
 
   if (loading) {
@@ -321,54 +280,29 @@ function MaintenanceList() {
   return (
     <>
     <Header showSearch={true}/>
-      <div className="p-6 max-w-7xl min-h-screen flex flex-col mx-auto height: 100vh;">
-        {/* Header */}
+      <div className="p-6 max-w-7xl min-h-screen flex flex-col mx-auto">
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-800">
-            {userRole === 'admin' ? 'Maintenance Requests Management' : 'My Maintenance Tasks'}
-          </h1>
+          <h1 className="text-3xl font-bold text-gray-800">My Maintenance Tasks</h1>
           <p className="text-gray-600 mt-2">
-            {userRole === 'admin' 
-              ? 'View and manage all maintenance requests' 
-              : 'Accept pending requests and manage your assigned tasks'}
+            Accept approved requests and manage your assigned tasks
           </p>
         </div>
 
-        {/* Tabs */}
         <div className="mb-6 border-b border-gray-200">
           <nav className="flex space-x-8">
-            {userRole === 'admin' && (
-              <button
-                onClick={() => setActiveTab('all')}
-                className={`pb-4 px-1 border-b-2 font-medium text-sm transition-colors ${
-                  activeTab === 'all'
-                    ? 'border-blue-500 text-blue-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                }`}
-              >
-                <div className="flex items-center gap-2">
-                  <ClipboardList className="w-5 h-5" />
-                  <span>All Requests</span>
-                  <span className="bg-gray-100 text-gray-800 px-2 py-0.5 rounded-full text-xs">
-                    {tabCounts.all}
-                  </span>
-                </div>
-              </button>
-            )}
-            
             <button
-              onClick={() => setActiveTab('pending')}
+              onClick={() => setActiveTab('available')}
               className={`pb-4 px-1 border-b-2 font-medium text-sm transition-colors ${
-                activeTab === 'pending'
-                  ? 'border-blue-500 text-blue-600'
+                activeTab === 'available'
+                  ? 'border-green-500 text-green-600'
                   : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
               }`}
             >
               <div className="flex items-center gap-2">
-                <Clock className="w-5 h-5" />
-                <span>{userRole === 'admin' ? 'Pending' : 'Available Tasks'}</span>
-                <span className="bg-yellow-100 text-yellow-800 px-2 py-0.5 rounded-full text-xs">
-                  {tabCounts.pending}
+                <ClipboardList className="w-5 h-5" />
+                <span>Available Tasks</span>
+                <span className="bg-green-100 text-green-800 px-2 py-0.5 rounded-full text-xs">
+                  {tabCounts.available}
                 </span>
               </div>
             </button>
@@ -382,17 +316,33 @@ function MaintenanceList() {
               }`}
             >
               <div className="flex items-center gap-2">
-                <CheckCircle2 className="w-5 h-5" />
-                <span>{userRole === 'admin' ? 'Assigned' : 'My Tasks'}</span>
+                <Clock className="w-5 h-5" />
+                <span>My Tasks</span>
                 <span className="bg-blue-100 text-blue-800 px-2 py-0.5 rounded-full text-xs">
                   {tabCounts.assigned}
+                </span>
+              </div>
+            </button>
+
+            <button
+              onClick={() => setActiveTab('completed')}
+              className={`pb-4 px-1 border-b-2 font-medium text-sm transition-colors ${
+                activeTab === 'completed'
+                  ? 'border-gray-500 text-gray-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              }`}
+            >
+              <div className="flex items-center gap-2">
+                <CheckCircle2 className="w-5 h-5" />
+                <span>Completed</span>
+                <span className="bg-gray-100 text-gray-800 px-2 py-0.5 rounded-full text-xs">
+                  {tabCounts.completed}
                 </span>
               </div>
             </button>
           </nav>
         </div>
 
-        {/* Requests Table */}
         {filteredRequests.length === 0 ? (
           <div className="bg-white p-12 rounded-lg text-center shadow-md">
             <div className="text-gray-400 mb-4">
@@ -402,11 +352,11 @@ function MaintenanceList() {
               No requests found
             </p>
             <p className="text-gray-600">
-              {activeTab === 'pending' && userRole === 'staff'
-                ? "There are no available tasks to accept at the moment."
-                : activeTab === 'assigned' && userRole === 'staff'
-                ? "You don't have any tasks assigned to you yet."
-                : "No maintenance requests in this category."}
+              {activeTab === 'available'
+                ? "There are no approved tasks available to accept at the moment."
+                : activeTab === 'assigned'
+                ? "You don't have any active tasks assigned to you."
+                : "You haven't completed any tasks yet."}
             </p>
           </div>
         ) : (
@@ -423,11 +373,6 @@ function MaintenanceList() {
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Description
                   </th>
-                  {userRole === 'admin' && (
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Assigned To
-                    </th>
-                  )}
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Status
                   </th>
@@ -456,14 +401,9 @@ function MaintenanceList() {
                     <td className="px-6 py-4 text-sm text-gray-700">
                       <div className="max-w-xs truncate">{req.description}</div>
                     </td>
-                    {userRole === 'admin' && (
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
-                        {req.assigned_to_details?.username || req.assigned_to?.username || 'Unassigned'}
-                      </td>
-                    )}
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span className={`px-3 py-1 rounded-full text-xs font-semibold ${getStatusBadgeClass(req.status)}`}>
-                        {req.status.replace('_', ' ').toUpperCase()}
+                        {formatStatusText(req.status)}
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
@@ -471,8 +411,7 @@ function MaintenanceList() {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm">
                       <div className="flex items-center gap-2">
-                        {/* Staff can accept pending tasks */}
-                        {userRole === 'staff' && activeTab === 'pending' && (
+                        {activeTab === 'available' && (
                           <button
                             onClick={() => handleAcceptRequest(req)}
                             className="text-green-600 hover:text-green-800 font-medium"
@@ -481,8 +420,7 @@ function MaintenanceList() {
                           </button>
                         )}
                         
-                        {/* Staff can cancel their assigned tasks */}
-                        {userRole === 'staff' && activeTab === 'assigned' && req.status !== 'completed' && (
+                        {activeTab === 'assigned' && req.status !== 'completed' && (
                           <button
                             onClick={() => handleCancelRequest(req)}
                             className="text-red-600 hover:text-red-800 font-medium"
@@ -506,7 +444,6 @@ function MaintenanceList() {
           </div>
         )}
 
-        {/* Request Detail Modal */}
         {showDetailModal && selectedRequest && (
           <div 
             className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50 p-4"
@@ -516,7 +453,6 @@ function MaintenanceList() {
               className="bg-white rounded-lg w-full max-w-3xl max-h-[90vh] overflow-y-auto"
               onClick={(e) => e.stopPropagation()}
             >
-              {/* Header */}
               <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex justify-between items-center">
                 <div> 
                   <h2 className="text-2xl font-bold text-gray-800">
@@ -534,9 +470,7 @@ function MaintenanceList() {
                 </button>
               </div>
 
-              {/* Body */}
               <div className="p-6 space-y-6">
-                {/* Request Information */}
                 <div className="space-y-4">
                   <h3 className="text-lg font-semibold text-gray-800 pb-2">Request Information</h3>
                   
@@ -581,7 +515,6 @@ function MaintenanceList() {
                       alt="Issue" 
                       className="w-full max-h-64 object-contain rounded border"
                       onError={(e) => {
-                        console.error('Image failed to load:', getImageUrl(selectedRequest.issue_photo));
                         e.target.style.display = 'none';
                       }}
                     />
@@ -589,97 +522,65 @@ function MaintenanceList() {
                 )}
               </div>
 
-              {/* Update Section */}
-              <div className="space-y-4 pt-6 px-8 pb-6">
-                <h3 className="text-lg font-semibold text-gray-800 pb-2">Update Request</h3>
-                
-                {/* Staff Assignment Dropdown (Admin Only) */}
-                {userRole === 'admin' && (
+              {activeTab !== 'completed' && (
+                <div className="space-y-4 pt-6 px-8 pb-6">
+                  <h3 className="text-lg font-semibold text-gray-800 pb-2">Update Request</h3>
+                  
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Assign To
-                    </label>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Status</label>
                     <select
-                      value={updateData.assigned_to || ''}
-                      onChange={(e) => setUpdateData({ ...updateData, assigned_to: e.target.value })}
+                      value={updateData.status}
+                      onChange={(e) => setUpdateData({ ...updateData, status: e.target.value })}
                       className="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:border-blue-500"
                     >
-                      <option value="">Unassigned</option>
-                      {staffList.map(staff => {
-                        const userId = staff.user?.id || staff.user;
-                        const username = staff.user?.username || staff.username || 'Unknown';
-                        const firstName = staff.user?.first_name || staff.first_name || '';
-                        const lastName = staff.user?.last_name || staff.last_name || '';
-                        
-                        const displayName = firstName && lastName 
-                          ? `${firstName} ${lastName} (@${username})`
-                          : username;
-                        
-                        return (
-                          <option key={staff.id} value={userId}>
-                            {displayName} - {staff.role}
-                          </option>
-                        );
-                      })}
+                      <option value="approved">Approved</option>
+                      <option value="in_progress">In Progress</option>
+                      <option value="completed">Completed</option>
                     </select>
                   </div>
-                )}
-                
-                {/* Status dropdown */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Status</label>
-                  <select
-                    value={updateData.status}
-                    onChange={(e) => setUpdateData({ ...updateData, status: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:border-blue-500"
-                  >
-                    <option value="pending">Pending</option>
-                    <option value="in_progress">In Progress</option>
-                    <option value="on_hold">On Hold</option>
-                    <option value="completed">Completed</option>
-                  </select>
-                </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Notes</label>
-                  <textarea
-                    rows="4"
-                    value={updateData.notes}
-                    onChange={(e) => setUpdateData({ ...updateData, notes: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:border-blue-500 resize-y"
-                    placeholder="Add notes about this request..."
-                  />
-                </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Notes</label>
+                    <textarea
+                      rows="4"
+                      value={updateData.notes}
+                      onChange={(e) => setUpdateData({ ...updateData, notes: e.target.value })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:border-blue-500 resize-y"
+                      placeholder="Add notes about this request..."
+                    />
+                  </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Upload Image (Optional)
-                  </label>
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={(e) => setUpdateData({ ...updateData, image: e.target.files[0] })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:border-blue-500"
-                  />
-                  {updateData.image && (
-                    <p className="text-sm text-gray-600 mt-1">Selected: {updateData.image.name}</p>
-                  )}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Upload Image (Optional)
+                    </label>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => setUpdateData({ ...updateData, image: e.target.files[0] })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:border-blue-500"
+                    />
+                    {updateData.image && (
+                      <p className="text-sm text-gray-600 mt-1">Selected: {updateData.image.name}</p>
+                    )}
+                  </div>
                 </div>
-              </div>
+              )}
 
-              {/* Footer Actions */}
               <div className="sticky bottom-0 bg-gray-50 px-6 py-4 flex gap-3 border-t">
-                <button 
-                  className="flex-1 bg-blue-500 hover:bg-blue-600 text-white py-2 px-4 rounded transition-colors font-medium"
-                  onClick={handleUpdateRequest}
-                >
-                  Update Request
-                </button>
+                {activeTab !== 'completed' && (
+                  <button 
+                    className="flex-1 bg-blue-500 hover:bg-blue-600 text-white py-2 px-4 rounded transition-colors font-medium"
+                    onClick={handleUpdateRequest}
+                  >
+                    Update Request
+                  </button>
+                )}
                 <button 
                   className="flex-1 bg-gray-500 hover:bg-gray-600 text-white py-2 px-4 rounded transition-colors font-medium"
                   onClick={closeDetailModal}
                 >
-                  Cancel
+                  {activeTab === 'completed' ? 'Close' : 'Cancel'}
                 </button>
               </div>
             </div>

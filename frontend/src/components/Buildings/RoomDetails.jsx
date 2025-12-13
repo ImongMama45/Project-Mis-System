@@ -30,13 +30,6 @@ const RoomDetails = ({
           >
             {selectedRoom.status.replace('_', ' ').toUpperCase()}
           </div>
-          <button
-            onClick={onNewRequest}
-            className="flex items-center px-4 py-2 bg-gradient-to-r from-green-500 to-green-600 text-white rounded-xl hover:from-green-600 hover:to-green-700 transition-all shadow-sm"
-          >
-            <Plus className="w-4 h-4 mr-2" />
-            New Request
-          </button>
         </div>
       </div>
 

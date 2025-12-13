@@ -200,6 +200,121 @@ export const getDefaultRoomsForFloor = (building, floor) => {
     }
   },
     'DFA Building': {
+      'Ground Floor': () => {
+        const rooms = [];
+        const startX = 50;
+        const startY = 90;
+        const gap = 20;
+        const smallGap = 5;
+        const hallwayWidth = 40;
+        
+        const stairsWidth = 60;
+        const stairsHeight = 250;
+        
+        const gateWidth = 80;
+        const gateHeight = 40;
+        
+        const kitchenWidth = 150;
+        const kitchenHeight = 120;
+        
+        const libraryWidth = 200;
+        const libraryHeight = stairsHeight;
+        
+        const adminOfficeWidth = 140;
+        const adminOfficeHeight = 80;
+        
+        const miniHotelWidth = 80;
+        const miniHotelHeight = 80;
+        
+        const janitorialWidth = 120;
+        const janitorialHeight = 40;
+        
+        const crWidth = 70;
+        const crHeight = 50;
+        
+        rooms.push(createRoom('STAIRS_GF', 'STAIRS', 'Stairs', startX, startY, stairsWidth, stairsHeight, 'no_request', 0, 'stairs'));
+        
+        const kitchenX = startX + stairsWidth + gap;
+        rooms.push(createRoom('BTVTED_KITCHEN', 'KITCHEN', 'BTVTED/DHRS Kitchen', kitchenX, startY, kitchenWidth, kitchenHeight, 'no_request', 0));
+        
+        const janitorialX = kitchenX + kitchenWidth + gap;
+        const janitorialY = startY;
+        rooms.push(createRoom('JANITORIAL_SUPPLIES', 'JANITORIAL', 'Janitorial & Supplies', janitorialX, janitorialY, janitorialWidth, janitorialHeight, 'no_request', 0));
+        
+        const gateX = janitorialX + janitorialWidth + gap;
+        const gateY = janitorialY;
+        rooms.push(createRoom('GATE', 'GATE', 'Gate', gateX, gateY, gateWidth, gateHeight, 'no_request', 0));
+        
+        const fbsX = janitorialX;
+        const fbsWidth = (gateX + gateWidth) - janitorialX;
+        const fbsY = janitorialY + janitorialHeight + gap;
+        const fbsHeight = (startY + kitchenHeight) - fbsY;
+        rooms.push(createRoom('FBS', 'FBS', 'Food & Beverage Services', fbsX, fbsY, fbsWidth, fbsHeight, 'no_request', 0));
+        
+        const libraryX = gateX + gateWidth + gap;
+        rooms.push(createRoom('LIBRARY', 'LIBRARY', 'Library', libraryX, startY, libraryWidth, libraryHeight, 'no_request', 0));
+        
+        const verticalHallwayX = libraryX + libraryWidth + gap;
+        const verticalHallwayY = startY;
+        const verticalHallwayHeight = stairsHeight;
+        
+        rooms.push({
+          id: 'HALLWAY_VERTICAL_GF',
+          label: 'HALL',
+          name: 'Vertical Hallway',
+          x: verticalHallwayX,
+          y: verticalHallwayY,
+          width: hallwayWidth,
+          height: verticalHallwayHeight,
+          status: 'no_request',
+          requests: 0,
+          special: 'hallway',
+          color: '#DBEAFE',
+          borderColor: '#93C5FD'
+        });
+        
+        const crSectionX = startX + stairsWidth + gap;
+        const crSectionY = startY + stairsHeight - crHeight;
+        
+        rooms.push(createRoom('CR_MALE_GF', 'CR M', 'Male CR', crSectionX, crSectionY, crWidth, crHeight, 'no_request', 0));
+        
+        const crFemaleX = crSectionX + crWidth + smallGap;
+        rooms.push(createRoom('CR_FEMALE_GF', 'CR F', 'Female CR', crFemaleX, crSectionY, crWidth, crHeight, 'no_request', 0));
+        
+        const libraryBottomY = startY + libraryHeight;
+        const hotelAdminBottomY = libraryBottomY;
+        const miniHotelY = hotelAdminBottomY - miniHotelHeight;
+        const adminOfficeY = hotelAdminBottomY - adminOfficeHeight;
+        const miniHotelX = crFemaleX + crWidth + smallGap;
+        
+        rooms.push(createRoom('MINI_HOTEL', 'HOTEL', 'Mini Hotel', miniHotelX, miniHotelY, miniHotelWidth, miniHotelHeight, 'no_request', 0));
+        
+        let adminOfficeX = libraryX - adminOfficeWidth - gap;
+        if (adminOfficeX + adminOfficeWidth > miniHotelX + miniHotelWidth + smallGap) {
+          adminOfficeX = miniHotelX + miniHotelWidth + smallGap;
+        }
+        
+        rooms.push(createRoom('ADMIN_OFFICE', 'ADMIN', 'Admin Office', adminOfficeX, adminOfficeY, adminOfficeWidth, adminOfficeHeight, 'no_request', 0));
+        
+        const maxY = Math.max(
+          startY + stairsHeight,
+          crSectionY + crHeight,
+          miniHotelY + miniHotelHeight,
+          adminOfficeY + adminOfficeHeight,
+          fbsY + fbsHeight
+        );
+        
+        const maxX = Math.max(
+          verticalHallwayX + hallwayWidth,
+          adminOfficeX + adminOfficeWidth,
+          libraryX + libraryWidth
+        );
+        
+        const canvasWidth = maxX + startX;
+        const canvasHeight = maxY + startY + 50;
+        
+        return { rooms, canvasWidth, canvasHeight };
+      },
       '2nd Floor': () => {
         const rooms = [];
         const startX = 50;
@@ -697,9 +812,9 @@ export const getDefaultRoomsForFloor = (building, floor) => {
 
   const comLab3X = startX + speechLabWidth + stairsWidth + gap * 2;
   rooms.push(createRoom(
-    'COMLAB_3',
-    'COMLAB 3',
-    'Computer Lab 3',
+    'CL3',
+    'CL3',
+    'CL3',
     comLab3X,
     startY,
     comLabWidth,
@@ -710,9 +825,9 @@ export const getDefaultRoomsForFloor = (building, floor) => {
 
   const comLab4X = comLab3X + comLabWidth + gap;
   rooms.push(createRoom(
-    'COMLAB_5',
-    'COMLAB 5',
-    'Computer Lab 5',
+    'CL5',
+    'CL5',
+    'CL5',
     comLab4X,
     startY,
     comLabWidth,
@@ -741,9 +856,9 @@ export const getDefaultRoomsForFloor = (building, floor) => {
   const bottomRowY = hallwayY + hallwayHeight + gap;
   
   rooms.push(createRoom(
-    'COMLAB_1',
-    'COMLAB 1',
-    'Computer Lab 1',
+    'CL1',
+    'CL1',
+    'CL1',
     startX,
     bottomRowY,
     comLabWidth,
@@ -754,9 +869,9 @@ export const getDefaultRoomsForFloor = (building, floor) => {
 
   const comLab2X = startX + comLabWidth + gap;
   rooms.push(createRoom(
-    'COMLAB_2',
-    'COMLAB 2',
-    'Computer Lab 2',
+    'CL2',
+    'CL2',
+    'CL2',
     comLab2X,
     bottomRowY,
     comLabWidth,
@@ -766,9 +881,9 @@ export const getDefaultRoomsForFloor = (building, floor) => {
   ));
 
   rooms.push(createRoom(
-    'COMLAB_4',
-    'COMLAB 4',
-    'Computer Lab 4',
+    'CL4',
+    'CL4',
+    'CL4',
     comLab4X,
     bottomRowY,
     comLabWidth,

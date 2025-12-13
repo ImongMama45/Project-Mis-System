@@ -19,7 +19,6 @@ export const statusColors = {
 
 export const buildings = [
   { id: 'NEW_BUILDING', name: 'New Building', floors: ['Ground Floor', '2nd Floor', '3rd Floor'] },
-  { id: 'DFA_BUILDING', name: 'DFA Building', floors: ['2nd Floor'] },
+  { id: 'DFA_BUILDING', name: 'DFA Building', floors: ['Ground Floor','2nd Floor'] },
   { id: 'ANNEX', name: 'Annex Building', floors: ['Ground Floor', '2nd Floor', '3rd Floor', '4th Floor'] },
-  { id: 'ABC', name: 'ABC Building', floors: ['Ground Floor', '2nd Floor'] }
 ];

@@ -78,8 +78,7 @@ export const maintenanceAPI = {
 
   claim: (id) => api.post(`/maintenance/requests/${id}/claim/`),
 
-
-complete: (id, data) => {
+  complete: (id, data) => {
     const formData = new FormData();
     Object.keys(data).forEach(key => {
       if (data[key] !== null && data[key] !== undefined) {
@@ -95,8 +94,7 @@ complete: (id, data) => {
     api.post(`/maintenance/requests/${id}/update-status/`, data),
 };
 
-
-// Request System API
+// Request System API (Alias for maintenance)
 export const requestAPI = {
   getAll: () => api.get('/maintenance/requests/'),
   getById: (id) => api.get(`/maintenance/requests/${id}/`),
@@ -107,58 +105,102 @@ export const requestAPI = {
 
 // Notification API
 export const notificationAPI = {
-  // Get all notifications for current user
   getAll: () => api.get('/notifications/my/'),
-  
-  // Mark single notification as read
   markAsRead: (id) => api.post(`/notifications/${id}/mark-read/`),
-  
-  // Mark all notifications as read
   markAllAsRead: () => api.post('/notifications/mark-all-read/'),
-  
-  // Delete notification
   delete: (id) => api.delete(`/notifications/${id}/`),
 };
 
 // Calendar/Schedule API
 export const calendarAPI = {
   // Get schedules for a specific month
-  getMonthSchedules: (year, month) => 
-    api.get('/calendar/calendar/month/', {
+  getMonthSchedules: (year, month) => {
+    console.log(`📅 Fetching schedules for ${year}-${month}`);
+    return api.get('/calendar/calendar/month/', {
       params: { year, month }
-    }),
+    });
+  },
   
-  // Set/Update schedule for a maintenance request
-  setSchedule: (requestId, data) => 
-    api.post(`/calendar/schedule/${requestId}/`, data),
+  // ✅ NEW: Get ALL schedules (fallback if month filtering doesn't work)
+  getAllSchedules: () => {
+    console.log('📅 Fetching ALL schedules');
+    return api.get('/calendar/calendar/');
+  },
   
-  // Get schedule for specific request
-  getRequestSchedule: (requestId) => 
-    api.get(`/calendar/schedule/${requestId}/`),
+  // Create/update schedule for a maintenance request
+  setSchedule: (requestId, data) => {
+    console.log(`📅 Creating schedule for request ${requestId}:`, data);
+    return api.post(`/calendar/schedule/${requestId}/`, data);
+  },
+  
+  // Get schedule for a specific request
+  getRequestSchedule: (requestId) => {
+    console.log(`📅 Getting schedule for request ${requestId}`);
+    return api.get(`/calendar/schedule/${requestId}/`);
+  },
 };
 
-
-// Add to your existing API service
+// Buildings/Location API
 export const buildingsAPI = {
-  getAll: () => api.get(`/location/buildings/`),
-  
+  getAll: () => api.get('/location/buildings/'),
   getFloors: (buildingId) => 
     api.get(`/location/buildings/${buildingId}/floors/`),
-  
   getRooms: (floorId) => 
     api.get(`/location/floors/${floorId}/rooms/`)
 };
 
+// ✅ UPDATED: Requests API with proper filtering support
 export const requestsAPI = {
-  getAll: () => api.get(`/maintenance/requests/`),
+  // Get all requests with optional filters
+  getAll: (filters = {}) => {
+    const params = {};
+    if (filters.room) params.room = filters.room;
+    if (filters.building) params.building = filters.building;
+    if (filters.floor) params.floor = filters.floor;
+    if (filters.status) params.status = filters.status;
+    
+    return api.get('/maintenance/requests/', { params });
+  },
+  
+  // Get requests for a specific room
   getByRoom: (roomId) => 
-    api.get(`/maintenance/requests/`, {
+    api.get('/maintenance/requests/', {
       params: { room: roomId }
     }),
-  create: (data) => api.post(`/maintenance/requests/create/`, data),
+  
+  // Get requests for a specific building
+  getByBuilding: (buildingId) =>
+    api.get('/maintenance/requests/', {
+      params: { building: buildingId }
+    }),
+  
+  // Get requests for a specific floor
+  getByFloor: (floorId) =>
+    api.get('/maintenance/requests/', {
+      params: { floor: floorId }
+    }),
+  
+  // ✅ FIXED: Create request using proper endpoint and format
+  create: (data) => {
+    // Transform data to match backend expectations
+    const requestData = {
+      requester_name: data.requester_name || 'Anonymous',
+      role: data.role || 'staff',
+      description: data.description,
+      building_id: data.building_id,
+      floor_id: data.floor_id,
+      room_id: data.room_id,
+      section: data.section || '',
+      student_id: data.student_id || ''
+    };
+    
+    console.log('Creating maintenance request with data:', requestData);
+    
+    return api.post('/maintenance/requests/create/', requestData);
+  },
+  
+  // Update request status
   update: (id, data) => api.patch(`/maintenance/requests/${id}/`, data)
 };
-
-
 
 export default api;

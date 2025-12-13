@@ -369,25 +369,7 @@ function UserHome() {
             </ul>
           </div>
 
-          {/* Need Help? */}
-          <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-2xl p-6 shadow-md border border-blue-200">
-            <div className="flex items-center mb-4">
-              <div className="bg-blue-100 rounded-full p-2 mr-3">
-                <AlertCircle className="w-6 h-6 text-blue-600" />
-              </div>
-              <h3 className="text-lg font-bold text-gray-800">Need Assistance?</h3>
-            </div>
-            <p className="text-sm text-gray-700 mb-4">
-              If you have questions or need help with your maintenance requests, our admin team is here to assist you.
-            </p>
-            <button
-              onClick={() => navigate('/home')}
-              className="w-full bg-blue-500 hover:bg-blue-600 text-white px-4 py-3 rounded-lg font-medium transition-colors flex items-center justify-center"
-            >
-              <span>Contact Admin</span>
-              <ArrowRight className="w-4 h-4 ml-2" />
-            </button>
-          </div>
+          
         </div>
       </div>
       <Footer/>

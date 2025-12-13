@@ -320,35 +320,10 @@ function UserDashboard() {
                   <AlertCircle className="w-5 h-5 mr-2" />
                   Track Requests
                 </button>
-                <button
-                  onClick={() => navigate('/calendar')}
-                  className="w-full bg-blue-500 hover:bg-blue-600 text-white py-3 px-4 rounded-xl transition-colors text-center font-medium flex items-center justify-center"
-                >
-                  <Calendar className="w-5 h-5 mr-2" />
-                  View Calendar
-                </button>
               </div>
             </div>
 
-            <div className="bg-gradient-to-br from-orange-50 to-red-50 rounded-2xl shadow-lg p-6 border border-orange-200">
-              <div className="text-center mb-4">
-                <div className="w-20 h-20 bg-orange-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <MessageSquare className="w-10 h-10 text-orange-600" />
-                </div>
-                <h3 className="text-xl font-bold text-gray-800 mb-2">
-                  Need Help?
-                </h3>
-                <p className="text-sm text-gray-600 mb-4">
-                  Contact the admin for assistance with your requests
-                </p>
-              </div>
-              <button
-                onClick={() => setShowContactModal(true)}
-                className="w-full bg-orange-500 hover:bg-orange-600 text-white px-6 py-3 rounded-xl font-medium transition-colors"
-              >
-                Contact Admin
-              </button>
-            </div>
+            
 
             <div className="bg-blue-50 rounded-2xl shadow-lg p-6 border border-blue-200">
               <h3 className="text-lg font-semibold text-gray-800 mb-3">💡 Tips</h3>

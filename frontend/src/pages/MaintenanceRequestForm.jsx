@@ -4,6 +4,7 @@ import api from '../api/axios'
 import Header from '../components/Header';
 import Footer from '../components/Footer.jsx'
 import { Upload, MapPin, User, FileText, Camera, CheckCircle } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 function MaintenanceRequestForm({ onSuccess }) {
   const [buildings, setBuildings] = useState([]);
@@ -24,6 +25,7 @@ function MaintenanceRequestForm({ onSuccess }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
+  const navigate = useNavigate();
 
   useEffect(() => {
     fetchUserProfile();
@@ -164,6 +166,11 @@ function MaintenanceRequestForm({ onSuccess }) {
       });
 
       setSuccess(true);
+
+      setTimeout(() => {
+        navigate('/track-requests');
+      }, 1500);
+      
       
       // Reset form
       const fullName = userProfile?.first_name && userProfile?.last_name 

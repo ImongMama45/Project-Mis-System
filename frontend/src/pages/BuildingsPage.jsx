@@ -1,6 +1,9 @@
 // BuildingPage.jsx - Complete rewrite with proper backend integration
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { AlertCircle, X, Building } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import Footer from '../components/Footer.jsx';
+import Header from '../components/Header.jsx';
 import { buildingsAPI, requestsAPI } from '../services/api.js';
 
 // Import components
@@ -118,7 +121,8 @@ const BuildingsPage = () => {
       // Filter requests for current building and floor
       const floorRequests = allRequests.filter(req => 
         req.building?.id === building.id && 
-        req.floor?.id === floor.id
+        req.floor?.id === floor.id &&
+        req.status !== 'approved'
       );
 
       // Step 5: Get the default layout
@@ -146,7 +150,10 @@ const BuildingsPage = () => {
         
         if (apiRoom) {
           // Room exists in backend - get its maintenance requests
-          const roomRequests = floorRequests.filter(req => req.room?.id === apiRoom.id);
+          const roomRequests = floorRequests.filter(req => 
+            req.room?.id === apiRoom.id && 
+            req.status !== 'approved'
+          );
           
           // Calculate status based on requests
           let status = 'no_request';
@@ -196,10 +203,13 @@ const BuildingsPage = () => {
     setIsLoadingRequests(true);
     try {
       const response = await requestsAPI.getByRoom(roomId);
-      const requestsData = Array.isArray(response.data) 
+      const allRequestsData = Array.isArray(response.data) 
         ? response.data 
         : response.data.results || [];
-      
+
+      // Filter out approved requests
+      const requestsData = allRequestsData.filter(req => req.status !== 'approved');
+
       setRequests(requestsData);
     } catch (error) {
       console.error('Error fetching requests:', error);
@@ -374,8 +384,13 @@ const BuildingsPage = () => {
   };
 
   return (
+    <>
+    <Header/>
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50 text-gray-800 p-4 md:p-6">
       {/* Error Display */}
+      <button className="text-blue-600 hover:text-blue-800 mb-4 flex items-center gap-1">
+        <Link to="/management/">← Back to Management Overview</Link>
+      </button>
       {error && (
         <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-xl shadow-sm">
           <div className="flex items-center">
@@ -459,6 +474,8 @@ const BuildingsPage = () => {
       {/* Room Tooltip */}
       <RoomTooltip room={hoveredRoom} containerRef={containerRef} />
     </div>
+    <Footer/>
+    </>
   );
 };
 

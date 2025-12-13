@@ -180,6 +180,8 @@ export default function UserAccountSettingsDashboard() {
   }
 
   return (
+    <>
+    <Header />
     <div className="flex min-h-screen bg-gray-100">
       {/* Main Content */}
       <div className="flex-1 p-8">
@@ -420,5 +422,6 @@ export default function UserAccountSettingsDashboard() {
         </div>
       </div>
     </div>
+    </>
   );
 }

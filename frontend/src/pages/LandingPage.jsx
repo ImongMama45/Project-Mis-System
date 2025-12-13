@@ -45,7 +45,7 @@ function LandingPage() {
           {/* Action Buttons */}
           <div className="flex flex-col sm:flex-row gap-4 animate-fade-in-delay">
             <button
-              onClick={() => navigate('/login')}
+              onClick={() => navigate('/auth')}
               className="px-12 py-4 bg-white text-blue-600 rounded-full font-bold text-lg hover:bg-blue-50 transform hover:scale-105 transition-all shadow-2xl"
             >
               Start Now →

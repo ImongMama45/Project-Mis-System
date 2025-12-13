@@ -1,6 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { Bell, X, Check, Calendar, AlertCircle, Clock } from 'lucide-react';
 import { notificationAPI } from '../services/api';
+import Header from '../components/Header.jsx';
+import Footer from '../components/Footer.jsx';
+
 
 function NotificationsPage() {
   const [notifications, setNotifications] = useState([]);
@@ -107,6 +110,8 @@ function NotificationsPage() {
   }
 
   return (
+    <>
+    <Header />
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50 p-6">
       <div className="max-w-4xl mx-auto">
         <div className="mb-8">
@@ -217,6 +222,8 @@ function NotificationsPage() {
         )}
       </div>
     </div>
+    <Footer />
+    </>
   );
 }
 

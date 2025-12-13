@@ -209,14 +209,6 @@ const NavigationBar = ({
             <span className="font-medium">Dimensions</span>
           </button>
 
-          {/* Export PDF */}
-          <button 
-            onClick={onExportPDF}
-            className="flex items-center px-4 py-2 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-xl hover:from-blue-600 hover:to-blue-700 transition-all shadow-sm"
-          >
-            <Download className="w-4 h-4 mr-2" />
-            <span className="font-medium">Export PDF</span>
-          </button>
         </div>
       </div>
     </div>

@@ -214,7 +214,11 @@ const AnalyticsPage = () => {
     const locationMap = {};
 
     requests.forEach(req => {
-      const location = `${req.building || 'Unknown'} - Floor ${req.floor || 'N/A'}`;
+      // Extract the actual name/number from the objects
+      const buildingName = req.building?.name || 'Unknown Building';
+      const floorNumber = req.floor?.number || 'N/A';
+      
+      const location = `${buildingName} - Floor ${floorNumber}`;
       locationMap[location] = (locationMap[location] || 0) + 1;
     });
 

@@ -1,13 +1,18 @@
 import { useState, useEffect } from 'react';
-import { Calendar, ChevronLeft, ChevronRight, User, Mail, Phone, Briefcase } from 'lucide-react';
-import {Link}from 'react-router-dom';
-import Footer from '../components/Footer.jsx'
+import { Calendar, ChevronLeft, ChevronRight, User, Mail, Phone, Briefcase, Lock, X } from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
+import Header from '../components/Header';
+import Footer from '../components/Footer.jsx';
+import api from '../api/axios';
 
 export default function AccountSettingsDashboard() {
+  const navigate = useNavigate();
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [isEditing, setIsEditing] = useState(false);
+  const [showPasswordModal, setShowPasswordModal] = useState(false);
+  
   const [formData, setFormData] = useState({
     first_name: '',
     last_name: '',
@@ -16,26 +21,38 @@ export default function AccountSettingsDashboard() {
     specialization: ''
   });
   
-  // Calendar data for November 2022
-  const calendarDays = [
-    { day: null }, { day: 1 }, { day: 2 }, { day: 3 }, { day: 4 }, { day: 5 }, { day: 6 },
-    { day: 7 }, { day: 8 }, { day: 9 }, { day: 10 }, { day: 11 }, { day: 12 }, { day: 13 },
-    { day: 14 }, { day: 15 }, { day: 16 }, { day: 17 }, { day: 18 }, { day: 19 }, { day: 20 },
-    { day: 21 }, { day: 22 }, { day: 23 }, { day: 24 }, { day: 25 }, { day: 26 }, { day: 27 },
-    { day: 28 }, { day: 29 }, { day: 30 }
-  ];
+  const [passwordData, setPasswordData] = useState({
+    current_password: '',
+    new_password: '',
+    confirm_password: ''
+  });
   
-  const highlightedDays = [14, 15, 16, 17, 18, 19, 20];
+  const [passwordError, setPasswordError] = useState('');
+  const [passwordLoading, setPasswordLoading] = useState(false);
   
-  const schedules = [
-    { building: 'Annex Building', room: 'Room A4', date: 'DEC', day: '16' },
-    { building: 'Annex Building', room: 'Room A4', date: 'DEC', day: '16' }
-  ];
+  const [taskStats, setTaskStats] = useState({
+    totalAssigned: 0,
+    workInProgress: 0,
+    completed: 0,
+    pendingMonth: 0,
+    complaintsMonth: 0,
+    accomplishedMonth: 0
+  });
+  
+  const [userId, setUserId] = useState(null);
+  const [currentDate, setCurrentDate] = useState(new Date());
+  const [schedules, setSchedules] = useState([]);
 
-  // Fetch user profile on component mount
   useEffect(() => {
     fetchProfile();
   }, []);
+
+  useEffect(() => {
+    if (userId) {
+      fetchTaskStatistics();
+      fetchSchedules();
+    }
+  }, [userId, currentDate]);
 
   const fetchProfile = async () => {
     try {
@@ -48,22 +65,12 @@ export default function AccountSettingsDashboard() {
         return;
       }
 
-      const response = await fetch('http://localhost:8000/api/accounts/profile/', {
-        method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to fetch profile');
-      }
-
-      const data = await response.json();
-      setProfile(data);
+      const response = await api.get('/accounts/profile/');
+      const data = response.data;
       
-      // Initialize form data
+      setProfile(data);
+      setUserId(data.id || data.user?.id);
+      
       setFormData({
         first_name: data.first_name || '',
         last_name: data.last_name || '',
@@ -81,9 +88,106 @@ export default function AccountSettingsDashboard() {
     }
   };
 
+  const fetchTaskStatistics = async () => {
+    try {
+      const response = await api.get('/maintenance/requests/');
+      const data = response.data;
+      
+      let requestsArray = [];
+      if (Array.isArray(data)) {
+        requestsArray = data;
+      } else if (data && Array.isArray(data.results)) {
+        requestsArray = data.results;
+      }
+
+      const myRequests = requestsArray.filter(req => {
+        const assignedToId = typeof req.assigned_to === 'object' 
+          ? req.assigned_to?.id 
+          : req.assigned_to;
+        return assignedToId === userId;
+      });
+
+      const now = new Date();
+      const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+      const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59);
+
+      const totalAssigned = myRequests.length;
+      const workInProgress = myRequests.filter(req => req.status === 'in_progress').length;
+      const completed = myRequests.filter(req => req.status === 'completed').length;
+      
+      const monthlyRequests = myRequests.filter(req => {
+        const createdDate = new Date(req.created_at);
+        return createdDate >= monthStart && createdDate <= monthEnd;
+      });
+      
+      const pendingMonth = monthlyRequests.filter(req => 
+        req.status === 'pending' || req.status === 'approved'
+      ).length;
+      
+      const complaintsMonth = monthlyRequests.length;
+      const accomplishedMonth = monthlyRequests.filter(req => 
+        req.status === 'completed'
+      ).length;
+
+      setTaskStats({
+        totalAssigned,
+        workInProgress,
+        completed,
+        pendingMonth,
+        complaintsMonth,
+        accomplishedMonth
+      });
+
+    } catch (err) {
+      console.error('Error fetching task statistics:', err);
+    }
+  };
+
+  const fetchSchedules = async () => {
+    try {
+      const response = await api.get('/maintenance/schedules/');
+      const data = response.data;
+      
+      let schedulesArray = [];
+      if (Array.isArray(data)) {
+        schedulesArray = data;
+      } else if (data && Array.isArray(data.results)) {
+        schedulesArray = data.results;
+      }
+
+      const mySchedules = schedulesArray.filter(schedule => {
+        const assignedToId = typeof schedule.assigned_to === 'object' 
+          ? schedule.assigned_to?.id 
+          : schedule.assigned_to;
+        
+        if (assignedToId !== userId) return false;
+        
+        const scheduleDate = new Date(schedule.schedule_date);
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        
+        return scheduleDate >= today;
+      });
+
+      mySchedules.sort((a, b) => new Date(a.schedule_date) - new Date(b.schedule_date));
+      setSchedules(mySchedules.slice(0, 2));
+
+    } catch (err) {
+      console.error('Error fetching schedules:', err);
+    }
+  };
+
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({
+      ...prev,
+      [name]: value
+    }));
+  };
+
+  const handlePasswordChange = (e) => {
+    const { name, value } = e.target;
+    setPasswordData(prev => ({
       ...prev,
       [name]: value
     }));
@@ -98,33 +202,18 @@ export default function AccountSettingsDashboard() {
         return;
       }
 
-      // Get staff profile ID from the current profile
       const staffProfileId = profile.staff_profile?.id || profile.id;
 
-      const response = await fetch(`http://localhost:8000/api/accounts/staff-management/${staffProfileId}/`, {
-        method: 'PUT',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          username: profile.username,
-          first_name: formData.first_name,
-          last_name: formData.last_name,
-          email: formData.email,
-          contact_number: formData.contact_number,
-          specialization: formData.specialization,
-          role: profile.role || profile.staff_profile?.role
-        }),
+      await api.put(`/accounts/staff-management/${staffProfileId}/`, {
+        username: profile.username,
+        first_name: formData.first_name,
+        last_name: formData.last_name,
+        email: formData.email,
+        contact_number: formData.contact_number,
+        specialization: formData.specialization,
+        role: profile.role || profile.staff_profile?.role
       });
 
-      if (!response.ok) {
-        throw new Error('Failed to update profile');
-      }
-
-      const updatedData = await response.json();
-      
-      // Refresh profile data
       await fetchProfile();
       
       setIsEditing(false);
@@ -134,6 +223,63 @@ export default function AccountSettingsDashboard() {
       console.error('Error updating profile:', err);
       alert('Failed to update profile: ' + err.message);
     }
+  };
+
+  const handleChangePassword = async () => {
+    setPasswordError('');
+    
+    // Validation
+    if (!passwordData.current_password || !passwordData.new_password || !passwordData.confirm_password) {
+      setPasswordError('All fields are required');
+      return;
+    }
+    
+    if (passwordData.new_password.length < 8) {
+      setPasswordError('New password must be at least 8 characters long');
+      return;
+    }
+    
+    if (passwordData.new_password !== passwordData.confirm_password) {
+      setPasswordError('New passwords do not match');
+      return;
+    }
+    
+    if (passwordData.current_password === passwordData.new_password) {
+      setPasswordError('New password must be different from current password');
+      return;
+    }
+
+    try {
+      setPasswordLoading(true);
+      
+      await api.post('/accounts/change-password/', {
+        old_password: passwordData.current_password,
+        new_password: passwordData.new_password,
+        new_password_confirm: passwordData.confirm_password
+      });
+
+      alert('Password changed successfully!');
+      setShowPasswordModal(false);
+      setPasswordData({
+        current_password: '',
+        new_password: '',
+        confirm_password: ''
+      });
+    } catch (err) {
+      console.error('Error changing password:', err);
+      setPasswordError(
+        err.response?.data?.error || 
+        err.response?.data?.old_password?.[0] || 
+        err.response?.data?.new_password?.[0] ||
+        'Failed to change password. Please check your current password.'
+      );
+    } finally {
+      setPasswordLoading(false);
+    }
+  };
+
+  const handleViewCalendar = () => {
+    navigate('/calendar');
   };
 
   const getRoleDisplay = (role) => {
@@ -154,6 +300,54 @@ export default function AccountSettingsDashboard() {
       'Maintenance Staff': 'bg-blue-100 text-blue-800 border-blue-300'
     };
     return colorMap[role] || 'bg-gray-100 text-gray-800 border-gray-300';
+  };
+
+  const generateCalendarDays = () => {
+    const year = currentDate.getFullYear();
+    const month = currentDate.getMonth();
+    const firstDay = new Date(year, month, 1).getDay();
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+    
+    const adjustedFirstDay = firstDay === 0 ? 6 : firstDay - 1;
+    const days = [];
+    
+    for (let i = 0; i < adjustedFirstDay; i++) {
+      days.push({ day: null });
+    }
+    
+    for (let day = 1; day <= daysInMonth; day++) {
+      days.push({ day });
+    }
+    
+    return days;
+  };
+
+  const getHighlightedDays = () => {
+    if (!schedules || schedules.length === 0) return [];
+    
+    return schedules.map(schedule => {
+      const scheduleDate = new Date(schedule.schedule_date);
+      if (scheduleDate.getMonth() === currentDate.getMonth() && 
+          scheduleDate.getFullYear() === currentDate.getFullYear()) {
+        return scheduleDate.getDate();
+      }
+      return null;
+    }).filter(day => day !== null);
+  };
+
+  const formatScheduleForDisplay = (schedule) => {
+    const scheduleDate = new Date(schedule.schedule_date);
+    const monthAbbr = scheduleDate.toLocaleString('default', { month: 'short' }).toUpperCase();
+    const day = scheduleDate.getDate();
+    
+    return {
+      building: schedule.request_details?.building?.name || 'Unknown Building',
+      room: schedule.request_details?.room?.name 
+        ? `Room ${schedule.request_details.room.name}` 
+        : 'Unknown Room',
+      date: monthAbbr,
+      day: day
+    };
   };
 
   if (loading) {
@@ -183,39 +377,40 @@ export default function AccountSettingsDashboard() {
     );
   }
 
+  const calendarDays = generateCalendarDays();
+  const highlightedDays = getHighlightedDays();
+  const displaySchedules = schedules.map(formatScheduleForDisplay);
+
   return (
     <>
+      <Header />
       <div className="flex min-h-screen bg-gray-100">
-        {/* Main Content */}
         <div className="flex-1 p-8">
-          {/* Header */}
           <div className="mb-8">
             <h1 className="text-3xl font-bold text-slate-900">Account Settings</h1>
             <p className="text-gray-600 mt-1">Manage your profile and account preferences</p>
           </div>
 
           <div className="grid grid-cols-3 gap-6">
-            {/* Left Column - Stats and Form */}
             <div className="col-span-2 space-y-6">
               {/* Stats Cards */}
               <div className="grid grid-cols-3 gap-4">
-                <div className="bg-slate-800 text-white p-6 rounded-lg text-center">
-                  <p className="text-sm mb-2">Number of Pendings (Month)</p>
-                  <p className="text-5xl font-bold">5</p>
+                <div className="bg-gradient-to-br from-yellow-500 to-orange-500 text-white p-6 rounded-xl shadow-lg text-center">
+                  <p className="text-sm mb-2 opacity-90">Number of Pendings (Month)</p>
+                  <p className="text-5xl font-bold">{taskStats.pendingMonth}</p>
                 </div>
-                <div className="bg-slate-800 text-white p-6 rounded-lg text-center">
-                  <p className="text-sm mb-2">Number of Complaints (Month)</p>
-                  <p className="text-5xl font-bold">19</p>
+                <div className="bg-gradient-to-br from-blue-500 to-indigo-500 text-white p-6 rounded-xl shadow-lg text-center">
+                  <p className="text-sm mb-2 opacity-90">Number of Complaints (Month)</p>
+                  <p className="text-5xl font-bold">{taskStats.complaintsMonth}</p>
                 </div>
-                <div className="bg-slate-800 text-white p-6 rounded-lg text-center">
-                  <p className="text-sm mb-2">Number of Accomplished (Month)</p>
-                  <p className="text-5xl font-bold">13</p>
+                <div className="bg-gradient-to-br from-green-500 to-emerald-500 text-white p-6 rounded-xl shadow-lg text-center">
+                  <p className="text-sm mb-2 opacity-90">Number of Accomplished (Month)</p>
+                  <p className="text-5xl font-bold">{taskStats.accomplishedMonth}</p>
                 </div>
               </div>
 
               {/* Profile Form */}
               <div className="bg-white p-6 rounded-lg shadow">
-                {/* Role Badge */}
                 <div className="mb-6 flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     <User className="text-slate-600" size={24} />
@@ -229,7 +424,6 @@ export default function AccountSettingsDashboard() {
                   </div>
                 </div>
 
-                {/* Username (Read-only) */}
                 <div className="mb-4">
                   <label className="block text-sm font-semibold mb-2 text-gray-700">Username</label>
                   <input
@@ -240,7 +434,6 @@ export default function AccountSettingsDashboard() {
                   />
                 </div>
 
-                {/* Full Name */}
                 <div className="grid grid-cols-2 gap-4 mb-4">
                   <div>
                     <label className="block text-sm font-semibold mb-2 text-gray-700">First Name</label>
@@ -301,7 +494,6 @@ export default function AccountSettingsDashboard() {
                   </div>
                 </div>
 
-                {/* Specialization */}
                 <div className="mb-6">
                   <label className="block text-sm font-semibold mb-2 text-gray-700">Specialization</label>
                   <input
@@ -315,17 +507,20 @@ export default function AccountSettingsDashboard() {
                   />
                 </div>
 
-                {/* Action Buttons */}
                 <div className="flex gap-4">
                   {!isEditing ? (
                     <>
                       <button 
                         onClick={() => setIsEditing(true)}
-                        className="px-6 py-2 bg-slate-800 text-white rounded hover:bg-slate-700 transition-colors"
+                        className="px-6 py-2 bg-slate-800 text-white rounded hover:bg-slate-700 transition-colors font-semibold"
                       >
                         EDIT PROFILE
                       </button>
-                      <button className="px-6 py-2 bg-slate-800 text-white rounded hover:bg-slate-700 transition-colors">
+                      <button 
+                        onClick={() => setShowPasswordModal(true)}
+                        className="px-6 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700 transition-colors font-semibold flex items-center gap-2"
+                      >
+                        <Lock size={16} />
                         CHANGE PASSWORD
                       </button>
                     </>
@@ -333,7 +528,7 @@ export default function AccountSettingsDashboard() {
                     <>
                       <button 
                         onClick={handleUpdateProfile}
-                        className="px-6 py-2 bg-green-600 text-white rounded hover:bg-green-700 transition-colors"
+                        className="px-6 py-2 bg-green-600 text-white rounded hover:bg-green-700 transition-colors font-semibold"
                       >
                         SAVE CHANGES
                       </button>
@@ -348,7 +543,7 @@ export default function AccountSettingsDashboard() {
                             specialization: profile.staff_profile?.specialization || ''
                           });
                         }}
-                        className="px-6 py-2 bg-gray-500 text-white rounded hover:bg-gray-600 transition-colors"
+                        className="px-6 py-2 bg-gray-500 text-white rounded hover:bg-gray-600 transition-colors font-semibold"
                       >
                         CANCEL
                       </button>
@@ -361,19 +556,19 @@ export default function AccountSettingsDashboard() {
                   <div>
                     <p className="text-sm font-semibold mb-2">Total work assigned</p>
                     <div className="h-20 bg-gray-100 rounded flex items-center justify-center">
-                      <span className="text-2xl font-bold text-gray-600">24</span>
+                      <span className="text-2xl font-bold text-gray-600">{taskStats.totalAssigned}</span>
                     </div>
                   </div>
                   <div>
                     <p className="text-sm font-semibold mb-2">Work in Progress</p>
                     <div className="h-20 bg-yellow-100 rounded flex items-center justify-center">
-                      <span className="text-2xl font-bold text-yellow-600">8</span>
+                      <span className="text-2xl font-bold text-yellow-600">{taskStats.workInProgress}</span>
                     </div>
                   </div>
                   <div>
                     <p className="text-sm font-semibold mb-2">Completed Tasks</p>
                     <div className="h-20 bg-green-100 rounded flex items-center justify-center">
-                      <span className="text-2xl font-bold text-green-600">16</span>
+                      <span className="text-2xl font-bold text-green-600">{taskStats.completed}</span>
                     </div>
                   </div>
                 </div>
@@ -382,23 +577,29 @@ export default function AccountSettingsDashboard() {
 
             {/* Right Column - Calendar and Schedules */}
             <div className="space-y-6">
-              {/* Calendar */}
               <div className="bg-white p-6 rounded-lg shadow">
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="font-semibold">Track Complaint</h3>
                 </div>
 
                 <div className="flex items-center justify-between mb-4">
-                  <button className="p-1 hover:bg-gray-100 rounded">
+                  <button 
+                    onClick={() => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1))}
+                    className="p-1 hover:bg-gray-100 rounded"
+                  >
                     <ChevronLeft size={20} />
                   </button>
-                  <span className="font-medium">November, 2022</span>
-                  <button className="p-1 hover:bg-gray-100 rounded">
+                  <span className="font-medium">
+                    {currentDate.toLocaleString('default', { month: 'long', year: 'numeric' })}
+                  </span>
+                  <button 
+                    onClick={() => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1))}
+                    className="p-1 hover:bg-gray-100 rounded"
+                  >
                     <ChevronRight size={20} />
                   </button>
                 </div>
 
-                {/* Calendar Grid */}
                 <div className="grid grid-cols-7 gap-1 text-center text-sm mb-2">
                   {['M', 'T', 'W', 'T', 'F', 'S', 'S'].map((day, i) => (
                     <div key={i} className="font-semibold text-gray-600 py-1">
@@ -411,7 +612,7 @@ export default function AccountSettingsDashboard() {
                   {calendarDays.map((item, index) => (
                     <div
                       key={index}
-                      className={`py-2 rounded ${
+                      className={`py-2 rounded cursor-pointer transition-all ${
                         item.day === null
                           ? 'text-transparent'
                           : highlightedDays.includes(item.day)
@@ -425,50 +626,149 @@ export default function AccountSettingsDashboard() {
                 </div>
 
                 <div className="mt-4 text-center">
-                  <button className="text-sm text-indigo-600 hover:underline">
-                  <Link
-                      to="/calendar"
-                      className="text-blue-500 hover:text-blue-600 font-medium"
-                      >
-                      View Schedule →
-                  </Link>
+                  <button
+                    onClick={handleViewCalendar}
+                    className="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-2 rounded-lg font-semibold transition-colors flex items-center justify-center gap-2"
+                  >
+                    <Calendar size={18} />
+                    View Full Calendar
                   </button>
                 </div>
               </div>
 
               {/* Schedules */}
               <div className="space-y-3">
-                {schedules.map((schedule, index) => (
-                  <div
-                    key={index}
-                    className="bg-white p-4 rounded-lg shadow flex items-center justify-between"
-                  >
-                    <div>
-                      <p className="font-semibold text-sm">{schedule.building}</p>
-                      <p className="text-gray-600 text-xs">{schedule.room}</p>
+                <h3 className="font-semibold text-gray-800">Upcoming Schedules</h3>
+                {displaySchedules.length > 0 ? (
+                  displaySchedules.map((schedule, index) => (
+                    <div
+                      key={index}
+                      className="bg-white p-4 rounded-lg shadow flex items-center justify-between hover:shadow-md transition-shadow"
+                    >
+                      <div>
+                        <p className="font-semibold text-sm">{schedule.building}</p>
+                        <p className="text-gray-600 text-xs">{schedule.room}</p>
+                      </div>
+                      <div className="text-center bg-indigo-50 px-3 py-2 rounded-lg">
+                        <p className="text-xs font-semibold text-indigo-600">{schedule.date}</p>
+                        <p className="text-2xl font-bold text-indigo-700">{schedule.day}</p>
+                      </div>
                     </div>
-                    <div className="text-center">
-                      <p className="text-xs font-semibold">{schedule.date}</p>
-                      <p className="text-2xl font-bold">{schedule.day}</p>
-                    </div>
+                  ))
+                ) : (
+                  <div className="bg-white p-4 rounded-lg shadow text-center text-gray-500 text-sm">
+                    No upcoming schedules
                   </div>
-                ))}
-              </div>
-
-              {/* Contact Maintenance */}
-              <div className="bg-gradient-to-br from-purple-100 to-pink-100 p-6 rounded-lg shadow text-center">
-                <div className="mb-3">
-                  <div className="w-32 h-24 mx-auto bg-white rounded flex items-center justify-center">
-                    <Briefcase size={48} className="text-purple-600" />
-                  </div>
-                </div>
-                <p className="font-semibold text-slate-900">Contact Maintenance</p>
+                )}
               </div>
             </div>
           </div>
         </div>
       </div>
-      <Footer/>
+
+      {/* Password Change Modal */}
+      {showPasswordModal && (
+        <div 
+          className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50 p-4"
+          onClick={() => setShowPasswordModal(false)}
+        >
+          <div 
+            className="bg-white rounded-2xl w-full max-w-md p-8 shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center gap-3">
+                <div className="bg-indigo-100 p-3 rounded-xl">
+                  <Lock className="w-6 h-6 text-indigo-600" />
+                </div>
+                <h3 className="text-2xl font-bold text-gray-800">Change Password</h3>
+              </div>
+              <button
+                onClick={() => setShowPasswordModal(false)}
+                className="text-gray-400 hover:text-gray-600 transition-colors"
+              >
+                <X size={24} />
+              </button>
+            </div>
+
+            {passwordError && (
+              <div className="mb-4 bg-red-50 text-red-600 p-3 rounded-lg border border-red-200 text-sm">
+                {passwordError}
+              </div>
+            )}
+
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-semibold mb-2 text-gray-700">
+                  Current Password
+                </label>
+                <input
+                  type="password"
+                  name="current_password"
+                  value={passwordData.current_password}
+                  onChange={handlePasswordChange}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                  placeholder="Enter current password"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold mb-2 text-gray-700">
+                  New Password
+                </label>
+                <input
+                  type="password"
+                  name="new_password"
+                  value={passwordData.new_password}
+                  onChange={handlePasswordChange}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                  placeholder="Enter new password (min. 8 characters)"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold mb-2 text-gray-700">
+                  Confirm New Password
+                </label>
+                <input
+                  type="password"
+                  name="confirm_password"
+                  value={passwordData.confirm_password}
+                  onChange={handlePasswordChange}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                  placeholder="Confirm new password"
+                />
+              </div>
+
+              <div className="pt-4 flex gap-3">
+                <button
+                  onClick={handleChangePassword}
+                  disabled={passwordLoading}
+                  className="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white py-3 rounded-lg font-semibold transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
+                >
+                  {passwordLoading ? 'Changing...' : 'Change Password'}
+                </button>
+                <button
+                  onClick={() => {
+                    setShowPasswordModal(false);
+                    setPasswordData({
+                      current_password: '',
+                      new_password: '',
+                      confirm_password: ''
+                    });
+                    setPasswordError('');
+                  }}
+                  className="flex-1 bg-gray-500 hover:bg-gray-600 text-white py-3 rounded-lg font-semibold transition-colors"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <Footer />
     </>
   );
 }

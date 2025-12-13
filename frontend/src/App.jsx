@@ -1,8 +1,7 @@
 import React from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate, Link, useLocation, useNavigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, Link, useNavigate, useLocation } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext.jsx';
 import LandingPage from './pages/LandingPage.jsx';
-import Login from './components/Login.jsx';
 import Register from './components/Register.jsx';
 import AdminDashboard from './pages/AdminDashboard.jsx';
 import MaintenanceList from './pages/MaintenanceListPage.jsx';
@@ -21,13 +20,14 @@ import AnalyticsPage from './pages/AnalyticsPage.jsx';
 import NotificationBell from './components/NotifactionBell.jsx';
 import NotificationsPage from './pages/NotificationsPage.jsx';
 import Logo from './images/Logo.png';
-import IntegratedCalendar from './components/IntegratedCalendar.jsx'
+import IntegratedCalendar from './components/IntegratedCalendar.jsx';
+import AuthPage from './pages/AuthPage.jsx';
 
 function PrivateRoute({ children, allowedRoles }) {
   const { isAuthenticated, user } = useAuth();
   
   if (!isAuthenticated) {
-    return <Navigate to="/login" />;
+    return <Navigate to="/auth" />;
   }
   
   if (allowedRoles) {
@@ -65,7 +65,6 @@ function Sidebar() {
   const { isAuthenticated, logout, user } = useAuth();
   const location = useLocation();
 
-  if (!isAuthenticated) return null;
 
   const isActive = (path) => location.pathname === path;
 
@@ -91,7 +90,9 @@ function Sidebar() {
     if (role === 'staff' || role === 'maintenance staff' || role.includes('staff')) {
       return [
         { path: '/dashboard', label: 'Assigned Request' },
-        { path: '/account', label: 'Account' }
+        { path: '/calendar', label: 'Calendar' },
+        { path: "/maintenance/buildings", label: 'Buildings' },
+        { path: '/account', label: 'Account' },
       ];
     }
     
@@ -187,11 +188,15 @@ function RoleBasedDashboard() {
 
 function AppContent() {
   const { isAuthenticated } = useAuth();
+  const location = useLocation();
+  const hideSidebarRoutes = ['/', '/landing', '/login', '/register'];
+  const shouldShowSidebar =
+  isAuthenticated && !hideSidebarRoutes.includes(location.pathname);
 
   return (
     <div className="flex min-h-screen">
-      <Sidebar />
-      <div className={`flex-1 ${isAuthenticated ? 'ml-60' : 'ml-0'} transition-all`}>
+      {shouldShowSidebar && <Sidebar />}
+      <div className={`flex-1 ${shouldShowSidebar  ? 'ml-60' : 'ml-0'} transition-all`}>
         <Routes>
           {/* Landing Page - Public */}
           <Route
@@ -205,10 +210,10 @@ function AppContent() {
           
           {/* Auth Routes */}
           <Route
-            path="/login"
+            path="/auth"
             element={
               <PublicRoute>
-                <Login />
+                <AuthPage />
               </PublicRoute>
             }
           />
@@ -328,7 +333,7 @@ function AppContent() {
             }
           />
           <Route
-            path="/calendar-admin"
+            path="/maintenance/calendar-admin"
             element={
               <PrivateRoute allowedRoles={['staff', 'maintenance staff', 'admin', 'administrator']}>
                 <IntegratedCalendar />
@@ -376,7 +381,6 @@ function AppContent() {
             }
           />
           
-          <Route path="/" element={<Navigate to="/landing" />} />
           <Route path="/landing" element={<PublicPage><LandingPage /></PublicPage>} />
             
         </Routes>
